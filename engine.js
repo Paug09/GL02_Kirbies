@@ -4,4 +4,4 @@ var Engine = {
         return true
     }
 }
-module.export = Engine
+module.exports = Engine
