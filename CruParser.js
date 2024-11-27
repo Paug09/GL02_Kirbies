@@ -1,20 +1,18 @@
-var Slot = require('./Objet.js');
-// C'est pas ça plutôt ? :
-//var Time_Slot = require('./Objet.js');
+var Time_Slot = require('./Objet.js');
 var Course = require('./Objet.js');
 
 var CruParser = function (sTokenize, sParsedSymb) {
     this.ParsedCourse = [];
-    this.symb = ["+", ",", ",P=", ",H=", ",F", ",S=", "//"];
+    this.symb = ["+", "\d,", ",P=", ",H=", ",F", ",S=", "//"];
     this.showTokenize = sTokenize;
     this.showParsedSymbol = sParsedSymb;
 }
 
-//Parser procedure 
-// tokenize : transform the data input into a list
+//---------------------------------Parser procedure------------------------------------//
 
+// tokenize : transform the data input into a list
 CruParser.prototype.tokenize = function (data) {
-    var separator = /(\r\n)/;
+    var separator = /(\r\n|\+|,|,P=|,H=|,F|,S=|\/\/)/;
     data = data.split(separator);
     data = data.filter((val, idx) => !val.match(separator));
     return data;
@@ -29,6 +27,41 @@ CruParser.prototype.parse = function (data) {
     this.time_slot(tData);
 }
 
+//-------------------Parser operand------------//
+
+CruParser.prototype.errMsg = function (msg, input) {
+    this.errorCount++;
+    console.log("Parsing Error ! on " + input + " -- msg : " + msg);
+}
+
+// Read and return a symbol from input
+CruParser.prototype.next = function (input) {
+    var curS = input.shift();
+    if (this.showParsedSymbols) {
+        console.log(curS);
+    }
+    return curS
+}
+
+// accept : verify if the arg s is part of the language symbols.
+CruParser.prototype.accept = function (s) {
+    var idx = this.symb.indexOf(s);
+    if (idx === -1) {
+        this.errMsg("symbol " + s + " unknown", [" "]);
+        return false;
+    }
+
+    return idx;
+}
+
+// check : check whether the arg elt is on the head of the list
+CruParser.prototype.check = function (s, input) {
+    if (this.accept(input[0]) == this.accept(s)) {
+        return true;
+    }
+    return false;
+}
+
 // expect : expect the next symbol to be s.
 CruParser.prototype.expect = function (s, input) {
     if (s == this.next(input)) {
@@ -40,12 +73,24 @@ CruParser.prototype.expect = function (s, input) {
     return false;
 }
 
-// Parser rules 
+//-----------------------------------Parser rules--------------------------------------//
 // <course-def> = "+" <course-code> CRLF *(<time-slot>)
 CruParser.prototype.course_def = function (input) {
-    this.expect("+", input);
-    this.course_code(input);
-    this.time_slot(input);
+    if (this.check("+", input)) {
+        this.expect("+", input);
+        this.course_code(input);
+        this.time_slot(input);
+        var args = this.time_slot(input);
+        var ts = new Time_Slot(args.id, args.type, args.capacite, args.heure, args.groupe, args.salle)
+        this.expect("// \n +", input)
+        this.ParsedCourse.push(ts);
+        if (input.length > 0) {
+            this.time_slot(input);
+        }
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // <course-code> = 2ALPHA 2DIGIT
@@ -77,7 +122,7 @@ CruParser.prototype.time_slot = function (input) {
 
 // <slot-id> = *DIGIT
 CruParser.prototype.slot_id = function (input) {
-    this.expect(/\d+/, input);
+    this.expect(/(\d)/, input);
 }
 
 // <type> = ALPHA 1-2DIGIT
@@ -120,22 +165,6 @@ CruParser.prototype.time_end = function (input) {
     this.expect(/([9]|1[0-9]|2[0-2]):[0-5][0-9]/, input);
 }
 
-// Proposition, je ne sais même pas si ça fonctionne/que ça s'écrive comme ça
-/*
-//<time-start> = <time>
-CruParser.prototype.time_start = time;
-}
-
-//<time-end> = 
-CruParser.prototype.time_end = time;
-}
-
-//<time> = 1-2DIGIT ":"2DIGIT
-CruParser.prototype.time = function (input) {
-    this.expect(/([9]|1[0-9]|2[0-2]):[0-5][0-9]/, input);
-}
-*/
-
 //<groupe-id> = 1(DIGIT / ALPHA)
 CruParser.prototype.group_id = function (input) {
     this.expect(/[A-Z]|\d{1}/, input);
@@ -147,3 +176,5 @@ CruParser.prototype.group_id = function (input) {
 CruParser.prototype.room = function (input) {
     this.expect(/([A-Z]\d{3})|([A-Z]{3}\d)/, input);
 }
+
+module.exports = CruParser;
