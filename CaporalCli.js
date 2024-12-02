@@ -9,7 +9,7 @@ const cli = require("@caporal/core").default;
 
 cli
 	.version('cru-parser-cli')
-	.version('0.01')
+	.version('0.02')
 
 	// check Cru
 	.command('check', 'Check if <file> is a valid Cru file')
