@@ -10,6 +10,7 @@ const cli = require("@caporal/core").default;
 cli
 	.version('cru-parser-cli')
 	.version('0.01')
+
 	// check Cru
 	.command('check', 'Check if <file> is a valid Cru file')
 	.argument('<file>', 'The file to check with Cru parser')
@@ -38,15 +39,55 @@ cli
 	})
 
 	//readme
-    .command('readme', 'Display the README.txt file')
-    .action(({logger}) => {
-        fs.readFile("./README.txt", 'utf8', function (err,data) {
-            if (err) {
-                return logger.warn(err);
-            }
-            logger.info(data);
-        });
-    })
+	.command('readme', 'Display the README.txt file')
+	.action(({ logger }) => {
+		fs.readFile("./README.txt", 'utf8', function (err, data) {
+			if (err) {
+				return logger.warn(err);
+			}
+			logger.info(data);
+		});
+	})
+
+
+	// search rooms with a given course
+	.command('searchRoom', 'Looks for the rooms associated with a course')
+	.argument('<file>', 'The Cru file to search')
+	.argument('<course>', 'The course you want to search')
+	.option(`-c, --capacity` ,`--Shows capacity of the room(s)`, { validator: cli.BOOLEAN, default: false })
+	.action(({ args, options, logger }) => {
+		fs.readFile(args.file, 'utf8', function (err, data) {
+			if (err) {
+				return logger.warn(err);
+			}
+
+			analyzer = new CruParser();
+			analyzer.parse(data);
+
+			if (analyzer.errorCount === 0) {
+
+				let courseToSearch = analyzer.parsedCourse.find(UE => UE.name === args.course);
+
+				if (courseToSearch) {
+					logger.info(`Course : ${courseToSearch.name}`);
+					courseToSearch.slot_id.forEach(slot => {
+						logger.info(`Room: ${slot.room}`)
+					})
+					if (options.capacity){
+						let capacity = parseInt(slot.capacity.split('=')[1],10);
+						logger.info(`Capcity: ${capacity}`);
+					}
+				}
+				else {
+					logger.warn("No rooms found for the given course")
+				}
+			} else {
+				logger.info("The .cru file contains error".red);
+			}
+
+		});
+	})
+
 /*
 	// search
 	.command('search', 'Free text search on POIs\' name')
@@ -133,25 +174,25 @@ cli
 				});
 
 				/* Canvas version */
-				/*
-				var runtime = vg.parse(myChart);
-				var view = new vg.View(runtime).renderer('canvas').background("#FFF").run();
-				var myCanvas = view.toCanvas();
-				myCanvas.then(function(res){
-					fs.writeFileSync("./result.png", res.toBuffer());
-					view.finalize();
-					logger.info(myChart);
-					logger.info("Chart output : ./result.png");
-				})			
-				
+/*
+var runtime = vg.parse(myChart);
+var view = new vg.View(runtime).renderer('canvas').background("#FFF").run();
+var myCanvas = view.toCanvas();
+myCanvas.then(function(res){
+	fs.writeFileSync("./result.png", res.toBuffer());
+	view.finalize();
+	logger.info(myChart);
+	logger.info("Chart output : ./result.png");
+})			
+	
 
 
-			} else {
-				logger.info("The .vpf file contains error".red);
-			}
+} else {
+logger.info("The .vpf file contains error".red);
+}
 
-		});
-	}) */
+});
+}) */
 
 
 
