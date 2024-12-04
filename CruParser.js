@@ -1,6 +1,6 @@
 var Time_Slot = require('./Objet.js');
 
-var CruParser = function (sTokenize, sParsedSymb) {
+var CruParser = function (sTokenize, sParsedSymb, sDebug) {
     this.ParsedCourse = [];
     this.symb = ["+","//","P=","H=","F","S="];
     this.showTokenize = sTokenize;
@@ -65,7 +65,6 @@ CruParser.prototype.accept = function (s) {
 // check : check whether the arg elt is on the head of the list
 CruParser.prototype.check = function (s, input) {
    // Si `s` est un symbole fixe (exemple : "+" ou "//")
-   console.log("check",s);
    if (this.symb.includes(s)) {
     if (s === "+" && this.inTimeSlot) {
         return false;  // Ignore "+" dans ce contexte
@@ -88,7 +87,9 @@ CruParser.prototype.check = function (s, input) {
 // expect : expect the next symbol to be s.
 CruParser.prototype.expect = function (s, input) {
     if (s == this.next(input)) {
-        console.log("Reckognized! "+s)
+        if (this.showDebug){
+            console.log("Reckognized! "+s)
+        }
         return true;
     } else {
         this.errMsg("symbol " + s + " doesn't match", input);
@@ -127,9 +128,13 @@ CruParser.prototype.course_def = function (input) {
 // <course-code> = 2ALPHA 2DIGIT
 CruParser.prototype.course_code = function (input) {
     var curS = this.next(input);
-    if(matched = curS.match(/[A-Z]{2}\d{2}/i)){
-        console.log("course_code",curS);
-        console.log("matched",matched[0]);
+    if (this.showDebug) {
+        console.log("curS Course Code",curS);
+    }
+    if(matched = curS.match(/[A-Z]{2,3}\d{1,2}[A-Z]?\d?/i)){
+        if (this.showDebug) {
+            console.log("course_code validé",matched[0]);
+        }
 		return matched[0];
 	}else{
 		this.errMsg("Invalid course code \n Expected format : 'XX00' (e.g., 'CS01')", input);
@@ -162,9 +167,13 @@ CruParser.prototype.time_slot = function (input) {
 // <slot-id> = *DIGIT
 CruParser.prototype.slot_id = function (input) {
     var curS = this.next(input);
+    if (this.showDebug) {
+        console.log("curS Slot ID",curS);
+    }
     if(matched = curS.match(/(^\d)/i)){
-        console.log("slot_id",matched[0]);
-        console.log(input);
+        if (this.showDebug) {
+            console.log("slot_id validé",matched[0]);
+        }
 		return matched[0];
         
 	}else{
@@ -175,9 +184,13 @@ CruParser.prototype.slot_id = function (input) {
 // <type> = ALPHA 1DIGIT
 CruParser.prototype.type = function (input) {
     var curS = this.next(input);
-    console.log("curS Type",curS);
+    if (this.showDebug) {
+        console.log("curS Type",curS);
+    }    
     if(matched = curS.match(/[A-Z]\d/i)){
-        console.log("type validé",matched[0]);
+        if (this.showDebug) {
+            console.log("type validé",matched[0]);
+        }
 		return matched[0];
 	}else{
 		this.errMsg("Invalid Type \n Expected format : 'X0'|'X00' ", curS);
@@ -188,9 +201,13 @@ CruParser.prototype.type = function (input) {
 CruParser.prototype.capacity = function (input) {
     this.expect("P", input);
     var curS = this.next(input);
-    console.log("curS Capacity",curS);
+    if (this.showDebug) {
+        console.log("curS Capacity",curS);
+    }
     if (matched = curS.match(/\d{1,3}/i)) { 
-        console.log("capacity validé",matched[0]);
+        if (this.showDebug) {
+            console.log("capacity validé",matched[0]);
+        }
         return matched[0];
     } else {
         this.errMsg("Invalid capacity \n  Expected format: '0'|'00'|'000'", curS);
@@ -210,9 +227,13 @@ CruParser.prototype.schedule = function (input) {
 //<day> = 1-2ALPHA
 CruParser.prototype.day = function (input) {
     var curS = this.next(input);
-    console.log("curS Day",curS);
+    if (this.showDebug) {
+        console.log("curS Day",curS);
+    }
     if (matched = curS.match(/(L|MA|ME|J|V|S)/i)) { 
-        console.log("day validé",matched[0]);
+        if (this.showDebug) {
+            console.log("day validé",matched[0]);
+        }
         return matched[0];
     } else {
         this.errMsg("Invalid day \n Expected 'L|MA|ME|J|V|S' ", curS); 
@@ -230,9 +251,13 @@ CruParser.prototype.time_range = function (input) {
 //<time-start> = 1-2DIGIT ":" 2DIGIT
 CruParser.prototype.time_start = function (input) {
     var curS = this.next(input);
-    console.log("curS Time Start",curS);    
+    if (this.showDebug) {
+        console.log("curS Time Start",curS);
+    } 
     if (matched = curS.match(/([8-9]|1[0-9]|20):[0-5][0-9]/i)) { 
-        console.log("time_start validé",matched[0]);
+        if (this.showDebug) {
+            console.log("time_start validé",matched[0]);
+        }
         return matched[0];
     } else {
         this.errMsg("Invalid start time. Expected format: 'HH:MM' ('08:30' to '20:59' max) ", curS); 
@@ -260,9 +285,13 @@ CruParser.prototype.time_start = function (input) {
 //<time-end> = 1-2DIGIT ":" 2DIGIT
 CruParser.prototype.time_end = function (input) {
     var curS = this.next(input);
-    console.log("curS Time End",curS);
-    if (matched = curS.match(/([9]|1[0-9]|2[0-2]):[0-5][0-9]/i)) { 
-        console.log("time_end validé",matched[0]);
+    if (this.showDebug) {
+        console.log("curS Time End",curS);
+    }
+    if (matched = curS.match(/([8]|1[0-9]|2[0-2]):[0-5][0-9]/i)) { 
+        if (this.showDebug) {
+            console.log("time_end validé",matched[0]);
+        }
         return matched[0];
     } else {
         this.errMsg("Invalid end time \n Expected format : 'HH:MM' ('09:00' to '22:59' max) ", curS); 
@@ -272,9 +301,13 @@ CruParser.prototype.time_end = function (input) {
 //<groupe-id> = "F" 1(DIGIT / ALPHA)
 CruParser.prototype.group_id = function (input) {
     var curS = this.next(input);
-    console.log("curS Group ID",curS);
+    if (this.showDebug) {
+        console.log("curS Group ID",curS);
+    }
     if (matched = curS.match(/(F[0-9])/i)) { 
-        console.log("group_id validé",matched[0]);
+        if (this.showDebug) {
+            console.log("group_id validé",matched[0]);
+        }
         return matched[0];
     } else {
         this.errMsg("Invalid group ID \n Expected format : 'F' followed by a digit ", curS); 
@@ -282,13 +315,18 @@ CruParser.prototype.group_id = function (input) {
 }
 
 // <room> = "S=" <room-code>
-// <room-code> = (1ALPHA 3DIGIT)
+// <room-code> = (1ALPHA 3DIGIT)/(3ALPHA 1DIGIT)
 CruParser.prototype.room = function (input) {
     this.expect("S", input);
     var curS = this.next(input);
-    console.log("curS Room",curS);
-    if(matched = curS.match(/([A-Z]\d{3})/i)){
-        console.log("room validé",matched[0]);
+    if (this.showDebug) {
+        console.log("curS Room",curS);
+    }
+    if(matched = curS.match(/([A-Z]\d{3})|([A-Z]{3}\d)/i)){
+
+        if (this.showDebug) {
+            console.log("room validé",matched[0]);
+        }    
         return matched[0];
     }else{
         this.errMsg("Invalid room code \n Expected format : 'X000' (e.g., 'C001')", curS);
