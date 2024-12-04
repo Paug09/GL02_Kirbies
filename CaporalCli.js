@@ -15,6 +15,7 @@ cli
 	.argument('<file>', 'The file to check with Cru parser')
 	.option('-s, --showSymbols', 'log the analyzed symbol at each step', { validator: cli.BOOLEAN, default: false })
 	.option('-t, --showTokenize', 'log the tokenization results', { validator: cli.BOOLEAN, default: false })
+	.option('-d, --showDebug', 'log the debug information', { validator: cli.BOOLEAN, default: false })
 	.action(({ args, options, logger }) => {
 
 		fs.readFile(args.file, 'utf8', function (err, data) {
@@ -22,15 +23,22 @@ cli
 				return logger.warn(err);
 			}
 
-			var analyzer = new CruParser(options.showTokenize, options.showSymbols);
+			var analyzer = new CruParser(options.showTokenize, options.showSymbols,options.showDebug);
 			analyzer.parse(data);
 
 			if (analyzer.errorCount === 0) {
 				logger.info("The .cru file is a valid cru file".green);
 			} else {
 				logger.info("The .cru file contains error".red);
+				//Donne le nombre d'erreurs
+				logger.info("Error count : %d", analyzer.errorCount);
 			}
-
+			analyzer.ParsedCourse.forEach(course => {
+				console.log(`Course Code: ${course.courseCode}`);
+				course.timeSlots.forEach((ts, index) => {
+					console.log(`- Time Slot ${index + 1}: ${ts.toString()}`);
+				});
+			});
 			logger.debug(analyzer.parsedCourse);
 
 		});
