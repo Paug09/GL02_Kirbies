@@ -2,7 +2,7 @@ var Time_Slot = require('./Objet.js');
 
 var CruParser = function (sTokenize, sParsedSymb, sDebug) {
     this.ParsedCourse = [];
-    this.symb = ["+", "//", "P=", "H=", "F", "S="];
+    this.symb = ["+", "//"];
     this.showTokenize = sTokenize;
     this.showParsedSymbol = sParsedSymb;
     this.showDebug = sDebug;
