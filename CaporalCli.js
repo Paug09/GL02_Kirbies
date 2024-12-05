@@ -51,10 +51,10 @@ cli
 
 
 	// search rooms with a given course
-	.command('searchRoom', 'Looks for the rooms associated with a course')
+	.command('courseRoom', 'Looks for the rooms associated with a course')
 	.argument('<file>', 'The Cru file to search')
 	.argument('<course>', 'The course you want to search')
-	.option(`-c, --capacity` ,`--Shows capacity of the room(s)`, { validator: cli.BOOLEAN, default: false })
+	.option(`-c, --capacity`, `--Shows capacity of the room(s)`, { validator: cli.BOOLEAN, default: false })
 	.action(({ args, options, logger }) => {
 		fs.readFile(args.file, 'utf8', function (err, data) {
 			if (err) {
@@ -66,15 +66,21 @@ cli
 
 			if (analyzer.errorCount === 0) {
 
+				// we create the variable courseToSearch, found by its name
 				let courseToSearch = analyzer.parsedCourse.find(UE => UE.name === args.course);
 
+				// if the course is found in the file, we print its name and the room(s) associated
 				if (courseToSearch) {
 					logger.info(`Course : ${courseToSearch.name}`);
 					courseToSearch.slot_id.forEach(slot => {
 						logger.info(`Room: ${slot.room}`)
 					})
-					if (options.capacity){
-						let capacity = parseInt(slot.capacity.split('=')[1],10);
+
+					// if the option -c is called...
+					if (options.capacity) {
+
+						// ...we take the capacity, ridden of the part "P=", and transformed in an int
+						let capacity = parseInt(slot.capacity.split('=')[1], 10);
 						logger.info(`Capcity: ${capacity}`);
 					}
 				}
@@ -87,6 +93,71 @@ cli
 
 		});
 	})
+
+	// search rooms with a given time slot
+	.command('searchRoom', 'Looks for the rooms available at a given time slot')
+	.argument('<file>', 'The Cru file to search')
+	.argument('<day>', 'The day you want to know the available rooms (L, MA, ME, J, V, or S')
+	.argument('<timeSlot>', 'The time slot you want to search (e.g., 14:00-16:00)')
+	.action(({ args, logger }) => {
+		// Lire le fichier .cru
+		fs.readFile(args.file, 'utf8', function (err, data) {
+			if (err) {
+				return logger.warn(err);
+			}
+
+			const analyzer = new CruParser();
+			analyzer.parse(data);
+
+			if (analyzer.errorCount === 0) {
+				// Fonction pour extraire toutes les salles du fichier
+				function extractRooms(data) {
+					const roomPattern = /S=([A-Za-z0-9]+)/g;
+					const rooms = [];
+					let match;
+
+					// Extracting the rooms
+					while ((match = roomPattern.exec(data)) !== null) {
+						rooms.push(match[1]);
+					}
+
+					// Erasing double values
+					rooms.filter((value, index, self) => {
+						return self.indexOf(value) === index; 
+					});
+
+					return rooms;
+				}
+
+				// Extract the rooms and asign them to allRooms
+				let allRooms = extractRooms(data);
+
+
+				// Find free rooms
+				const occupiedRooms = [];
+				analyzer.parsedCourse.forEach(course => {
+					course.slots.forEach(slot => {
+						const [slotDay, slotTime] = slot.time.split(' ');
+						if (slotDay === args.day && slotTime === args.timeSlot) {
+							occupiedRooms.push(slot.room);
+						}
+					});
+				});
+
+				// List of available rooms
+				const availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
+
+				if (availableRooms.length > 0) {
+					logger.info(`Rooms available on ${args.day} during the time slot ${args.timeSlot}:`);
+					availableRooms.forEach(room => logger.info(`- ${room}`));
+				} else {
+					logger.warn(`No rooms available on ${args.day} during the time slot ${args.timeSlot}.`);
+				}
+			} else {
+				logger.info("The .cru file contains error".red);
+			}
+		});
+	});
 
 /*
 	// search
