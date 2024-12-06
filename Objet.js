@@ -8,10 +8,14 @@ var Time_Slot = function (I, T, P, H, G, S) {
     // P : Capacity (max number of students)
     this.capacite = P;
     // H : Schedule
-    this.heure = H;
+    this.horaire = H;
     // G : Subgroup
     this.groupe = G;
     // S : Associated room
     this.salle = S;
 }
+Time_Slot.prototype.toString = function () {
+    return `ID: ${this.id},Type: ${this.type}, Capacité: ${this.capacite}, Horaire: ${this.horaire}, Groupe: ${this.groupe}, Salle: ${this.salle}`;
+};
+
 module.exports = Time_Slot;
