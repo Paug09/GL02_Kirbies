@@ -7,14 +7,13 @@ var CruParser = function (sTokenize, sParsedSymb, sDebug) {
     this.showParsedSymbol = sParsedSymb;
     this.showDebug = sDebug;
     this.errorCount = 0;
-    this.inTimeSlot = false;
 }
 
 //---------------------------------Parser procedure------------------------------------//
 
 // tokenize : transform the data input into a list
 CruParser.prototype.tokenize = function (data) {
-    var separator = /(\r\n|,|\/\/|\+|\=|\s|-)/; // Séparateur : retour à la ligne, virgule ou double slash
+    var separator = /(\r\n|,|\/\/|\+|\=|\s|-)/; // Séparateur : retour à la ligne, virgule, double barre oblique, plus, égal, espace, tiret
     data = data.split(separator);
     data = data.filter((val, idx) => !val.match(/,|\=/)); // Supprime les séparateurs eux-mêmes 
     data = data.filter((val, idx) => val.trim() !== ""); // Filtrer les lignes vides ou composées uniquement d'espaces
@@ -288,7 +287,7 @@ CruParser.prototype.time_end = function (input) {
     if (this.showDebug) {
         console.log("curS Time End", curS);
     }
-    if (matched = curS.match(/([8]|1[0-9]|2[0-2]):[0-5][0-9]/i)) {
+    if (matched = curS.match(/([8-9]|1[0-9]|2[0-2]):[0-5][0-9]/i)) {
         if (this.showDebug) {
             console.log("time_end validated", matched[0]);
         }
