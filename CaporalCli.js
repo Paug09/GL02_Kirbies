@@ -23,7 +23,7 @@ cli
 				return logger.warn(err);
 			}
 
-			var analyzer = new CruParser(options.showTokenize, options.showSymbols,options.showDebug);
+			var analyzer = new CruParser(options.showTokenize, options.showSymbols, options.showDebug);
 			analyzer.parse(data);
 
 			if (analyzer.errorCount === 0) {
@@ -46,41 +46,57 @@ cli
 	})
 
 	//readme
-    .command('readme', 'Display the README.txt file')
-    .action(({logger}) => {
-        fs.readFile("./README.txt", 'utf8', function (err,data) {
-            if (err) {
-                return logger.warn(err);
-            }
-            logger.info(data);
-        });
-    })
-/*
-	// search
-	.command('search', 'Free text search on POIs\' name')
-	.argument('<file>', 'The Vpf file to search')
-	.argument('<needle>', 'The text to look for in POI\'s names')
+	.command('readme', 'Display the README.txt file')
+	.action(({ logger }) => {
+		fs.readFile("./README.txt", 'utf8', function (err, data) {
+			if (err) {
+				return logger.warn(err);
+			}
+			logger.info(data);
+		});
+	})
+
+	// search rooms with a given course
+	.command('courseRoom', 'Looks for the rooms associated with a course')
+	.argument('<file>', 'The Cru file to search')
+	.argument('<course>', 'The course you want to search')
+	.option('-c, --capacity', 'Shows capacity of the room(s)', { validator: cli.BOOLEAN, default: false })
 	.action(({ args, options, logger }) => {
 		fs.readFile(args.file, 'utf8', function (err, data) {
 			if (err) {
 				return logger.warn(err);
 			}
 
-			analyzer = new VpfParser();
+			const analyzer = new CruParser();
 			analyzer.parse(data);
 
-			if (analyzer.errorCount === 0) {
+			//if (analyzer.errorCount === 0) {
+				// find the given course in the database
+				const courseToSearch = analyzer.ParsedCourse.find(course => course.courseCode === args.course);
 
-				let poiAFiltrer = analyzer.parsedPOI.filter(poi=>poi.name.includes(args.needle));
-				logger.info("%s", JSON.stringify(poiAFiltrer, null, 2));
+				// if the course is found
+				if (courseToSearch) {
+					console.log(`Rooms that welcome the course ${courseToSearch.courseCode}:`);
 
-			} else {
-				logger.info("The .vpf file contains error".red);
-			}
+					courseToSearch.timeSlots.forEach((ts) => {
+						console.log(`- ${ts.salle}`);
 
+						if (options.capacity) {
+							const capacity = parseInt(ts.capacite);
+							console.log(`  Capacity: ${capacity}`);
+						}
+					});
+				} else {
+					logger.warn("No rooms found for the given course.");
+				}
+			//} else {
+			//	logger.warn("The .cru file contains parsing errors.");
+			//}
 		});
-	})
+	});
 
+
+/*
 	//average
 	.command('average', 'Compute the average note of each POI')
 	.alias('avg')
@@ -141,25 +157,25 @@ cli
 				});
 
 				/* Canvas version */
-				/*
-				var runtime = vg.parse(myChart);
-				var view = new vg.View(runtime).renderer('canvas').background("#FFF").run();
-				var myCanvas = view.toCanvas();
-				myCanvas.then(function(res){
-					fs.writeFileSync("./result.png", res.toBuffer());
-					view.finalize();
-					logger.info(myChart);
-					logger.info("Chart output : ./result.png");
-				})			
-				
+/*
+var runtime = vg.parse(myChart);
+var view = new vg.View(runtime).renderer('canvas').background("#FFF").run();
+var myCanvas = view.toCanvas();
+myCanvas.then(function(res){
+	fs.writeFileSync("./result.png", res.toBuffer());
+	view.finalize();
+	logger.info(myChart);
+	logger.info("Chart output : ./result.png");
+})			
+	
 
 
-			} else {
-				logger.info("The .vpf file contains error".red);
-			}
+} else {
+logger.info("The .vpf file contains error".red);
+}
 
-		});
-	}) */
+});
+}) */
 
 
 
