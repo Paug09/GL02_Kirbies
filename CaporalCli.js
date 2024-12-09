@@ -118,6 +118,40 @@ cli
 			// find the given room in the database
 			const roomToSearch = analyzer.ParsedCourse.find(room => room.timeSlots === args.room);
 
+			// Stoque tous les crénaux trouvables dans la base de données
+			function uniqueSchedules(data) {
+				const schedulePattern = /H=(L|MA|ME|J|V|S) (([8-9]|1[0-9]|20):[0-5][0-9])/g;
+				const schedules = [];
+				let match;
+
+				while ((match = schedulePattern.exec(data)) !== null) {
+					schedules.push(match[1]);
+				}
+
+				return schedules.filter((value, index, self) => self.indexOf(value) === index); // Supprime les doublons
+			}
+
+			function allSchedules(data) {
+				const daysOfWeek = ["L", "MA", "ME", "J", "V", "S"];
+				const startHour = 8;  // Heure de début (8h)
+				const endHour = 20;   // Heure de fin (20h)
+				const schedules = [];
+
+				for (let day of daysOfWeek) {
+					const daySchedules = [];
+					for (let hour = startHour; hour < endHour; hour++) {
+						const startTime = `${hour.toString().padStart(2, "0")}:00`;
+						const endTime = `${hour.toString().padStart(2, "0")}:30`;
+						daySchedules.push(`${day} ${startTime}-${endTime}`);
+
+						const startTime2 = `${hour.toString().padStart(2, "0")}:30`;
+						const endTime2 = `${(hour + 1).toString().padStart(2, "0")}:00`;
+						daySchedules.push(`${day} ${startTime2}-${endTime2}`);
+					}
+					schedules[day] = daySchedules;
+				}
+				return schedules;
+			}
 
 			// if the room is found
 			if (roomToSearch) {
@@ -128,11 +162,12 @@ cli
 				room.timeSlots.forEach(slot => {
 					const dayOfWeek = dayMapping[slot.heure.split(" ")[0]]; // Récupère le jour
 					const timeRange = slot.heure.split(" ")[1]; // Récupère "08:00-10:00"
-					occupiedSlots.push(slot.salle); //Ajoute le crénaux au tableau des crénaux occupés
-					console.log(`La salle est occupée durant le crénau suivant: ${slot.horaire}`);
+					occupiedSlots.push(slot); //Ajoute le crénaux au tableau des crénaux occupés
+					console.log(`The room is occupied during the time slot: ${slot.horaire}`);
 				});
 
 				// Calculer les moments où la salle est disponible
+				const allFreeMoment = allSchedules(data);
 				const availabilityRoom = allFreeMoment.filter(slot => !occupiedSlots.includes(slot));
 
 				if (availabilityRoom.length > 0) {
@@ -142,14 +177,117 @@ cli
 					logger.warn(`The room ${args.room} does not have any available slots.`);
 				}
 			} else {
-				logger.warn("No rooms found for the given name.");
+				logger.warn(`No room found with the name: ${args.room}`);
 			}
 
 			//} else {
 			//	logger.warn("The .cru file contains parsing errors.");
 			//}
 		});
-	});
+	})
+
+	// track the occupancy of a room
+	.command('occupancyRoom', 'Track the occupancy of a room during a specific time period')
+	.argument('<file>', 'The Cru file to search')
+	.argument('<room>', 'The room you want to track the occupancy')
+	.argument('<startTime>', 'The start time for the tracking period (e.g., Me 08:30)')
+	.argument('<endTime>', 'The end time for the tracking period (e.g., V 10:00)')
+	.action(({ args, logger }) => {
+		fs.readFile(args.file, 'utf8', function (err, data) {
+			if (err) {
+				return logger.warn(err);
+			}
+
+			const analyzer = new CruParser();
+			analyzer.parse(data);
+
+			//if (analyzer.errorCount === 0) {
+			// find the given room in the database
+			const roomToSearch = analyzer.ParsedCourse.find(room => room.timeSlots === args.room);
+
+			// Stoque tous les crénaux trouvables dans la base de données
+			function uniqueSchedules(data) {
+				const schedulePattern = /H=(L|MA|ME|J|V|S) (([8-9]|1[0-9]|20):[0-5][0-9])/g;
+				const schedules = [];
+				let match;
+
+				while ((match = schedulePattern.exec(data)) !== null) {
+					schedules.push(match[1]);
+				}
+
+				return schedules.filter((value, index, self) => self.indexOf(value) === index); // Supprime les doublons
+			}
+
+			function allSchedules(data) {
+				const daysOfWeek = ["L", "MA", "ME", "J", "V", "S"];
+				const startHour = 8;  // Heure de début (8h)
+				const endHour = 20;   // Heure de fin (20h)
+				const schedules = [];
+
+				for (let day of daysOfWeek) {
+					const daySchedules = [];
+					for (let hour = startHour; hour < endHour; hour++) {
+						const startTime = `${hour.toString().padStart(2, "0")}:00`;
+						const endTime = `${hour.toString().padStart(2, "0")}:30`;
+						daySchedules.push(`${day} ${startTime}-${endTime}`);
+
+						const startTime2 = `${hour.toString().padStart(2, "0")}:30`;
+						const endTime2 = `${(hour + 1).toString().padStart(2, "0")}:00`;
+						daySchedules.push(`${day} ${startTime2}-${endTime2}`);
+					}
+					schedules[day] = daySchedules;
+				}
+				return schedules;
+			}
+
+			// if the room is found
+			if (roomToSearch) {
+				// Trouver les moments où est occupée la salle
+				const occupiedSlots = [];
+				//const dayMapping = { "L": 1, "MA": 2, "ME": 3, "J": 4, "V": 5, "S": 6 };
+
+				room.timeSlots.forEach(slot => {
+					//const dayOfWeek = dayMapping[slot.heure.split(" ")[0]]; // Récupère le jour
+					const timeRange = slot.heure.split(" ")[1]; // Récupère "08:00-10:00"
+					const [slotStart, slotEnd] = timeRange.split("-");
+
+					// Check if the slot overlaps with the requested time range
+					if (
+						(slotStart >= args.startTime && slotStart < args.endTime) ||
+						(slotEnd > args.startTime && slotEnd <= args.endTime)
+					) {
+						occupiedSlots.push(slot); //Ajoute le crénaux au tableau des crénaux occupés
+					}
+
+					// Affiche en bullet point
+					if (occupiedSlots.length > 0){
+						console.log(`The room ${args.room} is occupied on the following slots:`);
+						occupiedSlots.forEach(slot => logger.info(`- ${slot}`));
+					}else {
+						logger.warn(`The room ${args.room} is never occupied between ${args.startTime} and ${args.endTime} `);
+					}
+				});
+
+				// Calculer les moments où la salle est disponible
+				const allFreeMoment = allSchedules(data);
+				const availabilityRoom = allFreeMoment.filter(slot => !occupiedSlots.includes(slot));
+
+				// Affiche en bullet point
+				if (availabilityRoom.length > 0) {
+					logger.info(`The room ${args.room} is available on the following slots:`);
+					availabilityRoom.forEach(slot => logger.info(`- ${slot}`));
+				} else {
+					logger.warn(`The room ${args.room} does not have any available slots.`);
+				}
+			} else {
+				logger.warn(`No room found with the name: ${args.room}`);
+			}
+
+			//} else {
+			//	logger.warn("The .cru file contains parsing errors.");
+			//}
+		});
+	})
 
 /*
 	// search
