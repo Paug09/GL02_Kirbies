@@ -190,9 +190,9 @@ cli
 	.command('occupancyRoom', 'Track the occupancy of a room during a specific time period')
 	.argument('<file>', 'The Cru file to search')
 	.argument('<room>', 'The room you want to track the occupancy')
-	.argument('<startTime>', 'The start time for the tracking period (e.g., Me 08:30)')
-	.argument('<endTime>', 'The end time for the tracking period (e.g., V 10:00)')
-	.action(({ args, logger }) => {
+	.option('<startTime>', 'The start time for the tracking period (e.g., Me 08:30)')
+	.option('<endTime>', 'The end time for the tracking period (e.g., V 10:00)')
+	.action(({ args, option, logger }) => {
 		fs.readFile(args.file, 'utf8', function (err, data) {
 			if (err) {
 				return logger.warn(err);
@@ -251,10 +251,19 @@ cli
 					const timeRange = slot.heure.split(" ")[1]; // Récupère "08:00-10:00"
 					const [slotStart, slotEnd] = timeRange.split("-");
 
+					if (option.startTime && option.endTime){
+						var startTime = option.startTime;
+						var endTime = option.endTime;
+					} else {
+						var startTime = "L 08:00";
+						var endTime = "V 20:00";
+					}
+					
+
 					// Check if the slot overlaps with the requested time range
 					if (
-						(slotStart >= args.startTime && slotStart < args.endTime) ||
-						(slotEnd > args.startTime && slotEnd <= args.endTime)
+						(slotStart >= startTime && slotStart < endTime) ||
+						(slotEnd > startTime && slotEnd <= endTime)
 					) {
 						occupiedSlots.push(slot); //Ajoute le crénaux au tableau des crénaux occupés
 					}
@@ -264,7 +273,7 @@ cli
 						console.log(`The room ${args.room} is occupied on the following slots:`);
 						occupiedSlots.forEach(slot => logger.info(`- ${slot}`));
 					}else {
-						logger.warn(`The room ${args.room} is never occupied between ${args.startTime} and ${args.endTime} `);
+						logger.warn(`The room ${args.room} is never occupied between ${startTime} and ${endTime} `);
 					}
 				});
 
