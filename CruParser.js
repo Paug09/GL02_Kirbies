@@ -1,4 +1,4 @@
-var Time_Slot = require('./Objet.js');
+var Time_Slot = require("./Objet.js");
 
 var CruParser = function (sTokenize, sParsedSymb, sDebug) {
     this.ParsedCourse = [];
@@ -7,8 +7,8 @@ var CruParser = function (sTokenize, sParsedSymb, sDebug) {
     this.showParsedSymbol = sParsedSymb;
     this.showDebug = sDebug;
     this.errorCount = 0;
-    this.inTimeSlot = false;
-}
+    this.inTimeSlot = false; // Propriété pour indiquer si on est dans un time_slot
+};
 
 //---------------------------------Parser procedure------------------------------------//
 
@@ -16,11 +16,11 @@ var CruParser = function (sTokenize, sParsedSymb, sDebug) {
 CruParser.prototype.tokenize = function (data) {
     var separator = /(\r\n|,|\/\/|\+|\=|\s|-)/; // Séparateur : retour à la ligne, virgule ou double slash
     data = data.split(separator);
-    data = data.filter((val, idx) => !val.match(/,|\=/)); // Supprime les séparateurs eux-mêmes 
+    data = data.filter((val, idx) => !val.match(/,|\=/)); // Supprime les séparateurs eux-mêmes
     data = data.filter((val, idx) => val.trim() !== ""); // Filtrer les lignes vides ou composées uniquement d'espaces
     data = data.map((val) => val.trim()); // Normalisation des tokens : enlève les espaces autour de chaque élément
     return data;
-}
+};
 
 // parse : analyze data by calling the first non terminal rule of the grammar
 CruParser.prototype.parse = function (data) {
@@ -29,7 +29,7 @@ CruParser.prototype.parse = function (data) {
         console.log(tData);
     }
     this.course_def(tData);
-}
+};
 
 //-------------------Parser operand------------//
 
@@ -37,7 +37,7 @@ CruParser.prototype.errMsg = function (msg, input) {
     this.errorCount++;
     console.log("Parsing Error ! on " + input + " -- msg : " + msg);
     console.log("Error count : " + this.errorCount);
-}
+};
 
 // Read and return a symbol from input
 CruParser.prototype.next = function (input) {
@@ -48,8 +48,8 @@ CruParser.prototype.next = function (input) {
     if (this.showParsedSymbols) {
         console.log(curS);
     }
-    return curS
-}
+    return curS;
+};
 
 // accept : verify if the arg s is part of the language symbols.
 CruParser.prototype.accept = function (s) {
@@ -60,15 +60,21 @@ CruParser.prototype.accept = function (s) {
     }
 
     return idx;
-}
-
+};
+// check : check whether the arg elt is on the head of the list
+CruParser.prototype.checkCourse = function (s, input) {
+    // Si `s` est un symbole fixe (exemple : "+" ou "//")
+    if (this.symb.includes(s)) {
+        return this.accept(input[0]) === this.accept(s);
+    }}
 // check : check whether the arg elt is on the head of the list
 CruParser.prototype.check = function (s, input) {
     // Si `s` est un symbole fixe (exemple : "+" ou "//")
     if (this.symb.includes(s)) {
         if (s === "+" && this.inTimeSlot) {
-            return false;  // Ignore "+" dans ce contexte
-        } else return this.accept(input[0]) === this.accept(s);
+            return false; // Ignore "+" si on est dan sun time_slot
+        } 
+        return this.accept(input[0]) === this.accept(s);
     }
 
     // Sinon, c'est une catégorie dynamique (par exemple, "slot_id")
@@ -82,37 +88,47 @@ CruParser.prototype.check = function (s, input) {
     }
     // Si la catégorie n'existe pas, on retourne false
     return false;
-}
+};
 
 // expect : expect the next symbol to be s.
 CruParser.prototype.expect = function (s, input) {
     if (s == this.next(input)) {
         if (this.showDebug) {
-            console.log("Reckognized! " + s)
+            console.log("Reckognized! " + s);
         }
         return true;
     } else {
         this.errMsg("symbol " + s + " doesn't match", input);
     }
     return false;
-}
+};
 
 //-----------------------------------Parser rules--------------------------------------//
 // <course-def> = "+" <course-code> CRLF *<time-slot>
 CruParser.prototype.course_def = function (input) {
     if (this.check("+", input)) {
+        console.log("inTimeSlot hors boucle while ", this.inTimeSlot); // Affiche la valeur de inTimeSlot
         this.expect("+", input);
         let courseCode = this.course_code(input); // Analyse le code du cours
         let timeSlots = []; // Tableau pour stocker les time_slots
-        while (input.length > 0) {
-            if (this.check("+", input)) {
-                break;
-            }
+        this.inTimeSlot = true; // Indique qu'on est dans un time_slot
+        while (input.length > 0 && !this.check("+", input) ) {
             let args = this.time_slot(input); // Analyse un time_slot
-            let ts = new Time_Slot(args.id, args.type, args.capacite, args.horaire, args.groupe, args.salle);
-            timeSlots.push(ts);           // Ajoute le time_slot au tableau
-            this.expect("//", input);     // Vérifie la fin du time_slot
+            
+            let ts = new Time_Slot(
+                args.id,
+                args.type,
+                args.capacite,
+                args.horaire,
+                args.groupe,
+                args.salle
+            );
+            timeSlots.push(ts); // Ajoute le time_slot au tableau
+            this.expect("//", input); // Vérifie la fin du time_slot
+            console.log("inTimeSlot", this.inTimeSlot); // Affiche la valeur de inTimeSlot
         }
+        this.inTimeSlot = false; // Indique qu'on a fini de traiter le time_slot
+        console.log("inTimeSlot", this.inTimeSlot); // Affiche la valeur de inTimeSlot
         // Stocke le cours et ses time_slots
         this.ParsedCourse.push({ courseCode, timeSlots });
         // Passe au prochain course_def, s'il en reste
@@ -123,7 +139,7 @@ CruParser.prototype.course_def = function (input) {
     } else {
         return false;
     }
-}
+};
 
 // <course-code> = 2ALPHA 2DIGIT
 CruParser.prototype.course_code = function (input) {
@@ -131,7 +147,7 @@ CruParser.prototype.course_code = function (input) {
     if (this.showDebug) {
         console.log("curS Course Code", curS);
     }
-    if (matched = curS.match(/[A-Z]{2,3}\d{1,2}[A-Z]?\d?/i)) {
+    if ((matched = curS.match(/[A-Z]{2,3}\d{1,2}[A-Z]?\d?/i))) {
         if (this.showDebug) {
             console.log("course_code validé", matched[0]);
         }
@@ -139,7 +155,7 @@ CruParser.prototype.course_code = function (input) {
     } else {
         this.errMsg("Invalid course code \n Expected format : 'XX00' (e.g., 'CS01')", input);
     }
-}
+};
 
 // <time-slot> = <slot-id> "," <type> "," <capacity> "," <time> "," <group-id> "," <room> "//" CRLF
 CruParser.prototype.time_slot = function (input) {
@@ -161,9 +177,9 @@ CruParser.prototype.time_slot = function (input) {
         capacite: capacity,
         horaire: schedule,
         groupe: group,
-        salle: room
+        salle: room,
     };
-}
+};
 
 // <slot-id> = DIGIT
 CruParser.prototype.slot_id = function (input) {
@@ -171,16 +187,15 @@ CruParser.prototype.slot_id = function (input) {
     if (this.showDebug) {
         console.log("curS Slot ID", curS);
     }
-    if (matched = curS.match(/(^\d)/i)) {
+    if ((matched = curS.match(/(^\d)/i))) {
         if (this.showDebug) {
             console.log("slot_id validated", matched[0]);
         }
         return matched[0];
-
     } else {
         this.errMsg("Invalid slot ID \n Expected a number", curS);
     }
-}
+};
 
 // <type> = ALPHA DIGIT
 CruParser.prototype.type = function (input) {
@@ -188,7 +203,7 @@ CruParser.prototype.type = function (input) {
     if (this.showDebug) {
         console.log("curS Type", curS);
     }
-    if (matched = curS.match(/[A-Z]\d/i)) {
+    if ((matched = curS.match(/[A-Z]\d/i))) {
         if (this.showDebug) {
             console.log("type validated", matched[0]);
         }
@@ -196,7 +211,7 @@ CruParser.prototype.type = function (input) {
     } else {
         this.errMsg("Invalid Type \n Expected format : 'X0'|'X00' ", curS);
     }
-}
+};
 
 //<capacity> "P="" 1-3DIGIT
 CruParser.prototype.capacity = function (input) {
@@ -205,7 +220,7 @@ CruParser.prototype.capacity = function (input) {
     if (this.showDebug) {
         console.log("curS Capacity", curS);
     }
-    if (matched = curS.match(/\d{1,3}/i)) {
+    if ((matched = curS.match(/\d{1,3}/i))) {
         if (this.showDebug) {
             console.log("capacity validated", matched[0]);
         }
@@ -213,7 +228,7 @@ CruParser.prototype.capacity = function (input) {
     } else {
         this.errMsg("Invalid capacity \n  Expected format: '0'|'00'|'000'", curS);
     }
-}
+};
 
 // <time> = "H=" <day> WSP <time-range>
 CruParser.prototype.schedule = function (input) {
@@ -222,7 +237,7 @@ CruParser.prototype.schedule = function (input) {
     let timeRange = this.time_range(input);
 
     return `${day} ${timeRange}`;
-}
+};
 
 //<day> = 1-2ALPHA
 CruParser.prototype.day = function (input) {
@@ -230,7 +245,7 @@ CruParser.prototype.day = function (input) {
     if (this.showDebug) {
         console.log("curS Day", curS);
     }
-    if (matched = curS.match(/(L|MA|ME|J|V|S)/i)) {
+    if ((matched = curS.match(/(L|MA|ME|J|V|S)/i))) {
         if (this.showDebug) {
             console.log("day validated", matched[0]);
         }
@@ -238,7 +253,7 @@ CruParser.prototype.day = function (input) {
     } else {
         this.errMsg("Invalid day \n Expected 'L|MA|ME|J|V|S' ", curS);
     }
-}
+};
 
 //<time-range> = <time-start> "-" <time-end>
 CruParser.prototype.time_range = function (input) {
@@ -246,7 +261,7 @@ CruParser.prototype.time_range = function (input) {
     this.expect("-", input);
     let endTime = this.time_end(input);
     return `${startTime}-${endTime}`;
-}
+};
 
 //<time-start> = 1-2DIGIT ":" 2DIGIT
 CruParser.prototype.time_start = function (input) {
@@ -254,7 +269,7 @@ CruParser.prototype.time_start = function (input) {
     if (this.showDebug) {
         console.log("curS Time Start", curS);
     }
-    if (matched = curS.match(/([8-9]|1[0-9]|20):[0-5][0-9]/i)) {
+    if ((matched = curS.match(/([8-9]|1[0-9]|20):[0-5][0-9]/i))) {
         if (this.showDebug) {
             console.log("time_start validated", matched[0]);
         }
@@ -262,7 +277,7 @@ CruParser.prototype.time_start = function (input) {
     } else {
         this.errMsg("Invalid start time. Expected format: 'HH:MM' ('08:30' to '20:59' max) ", curS);
     }
-}
+};
 // -------Ou ca pour vérifier les heures et minutes séparrement-----\\
 // CruParser.prototype.time_start = function (input, minHour = 8, maxHour = 20) {
 //     var curS = this.next(input);
@@ -288,23 +303,26 @@ CruParser.prototype.time_end = function (input) {
     if (this.showDebug) {
         console.log("curS Time End", curS);
     }
-    if (matched = curS.match(/([8]|1[0-9]|2[0-2]):[0-5][0-9]/i)) {
+    if ((matched = curS.match(/([8]|1[0-9]|2[0-2]):[0-5][0-9]/i))) {
         if (this.showDebug) {
             console.log("time_end validated", matched[0]);
         }
         return matched[0];
     } else {
-        this.errMsg("Invalid end time \n Expected format : 'HH:MM' ('09:00' to '22:59' max) ", curS);
+        this.errMsg(
+            "Invalid end time \n Expected format : 'HH:MM' ('09:00' to '22:59' max) ",
+            curS
+        );
     }
-}
+};
 
-//<groupe-id> = "F" DIGIT 
+//<groupe-id> = "F" DIGIT
 CruParser.prototype.group_id = function (input) {
     var curS = this.next(input);
     if (this.showDebug) {
         console.log("curS Group ID", curS);
     }
-    if (matched = curS.match(/(F[0-9])/i)) {
+    if ((matched = curS.match(/(F[0-9])/i))) {
         if (this.showDebug) {
             console.log("group_id validated", matched[0]);
         }
@@ -312,7 +330,7 @@ CruParser.prototype.group_id = function (input) {
     } else {
         this.errMsg("Invalid group ID \n Expected format : 'F' followed by a digit ", curS);
     }
-}
+};
 
 // <room> = "S=" <room-code>
 // <room-code> = (1ALPHA 3DIGIT) / (3ALPHA 1DIGIT)
@@ -322,15 +340,17 @@ CruParser.prototype.room = function (input) {
     if (this.showDebug) {
         console.log("curS Room", curS);
     }
-    if (matched = curS.match(/([A-Z]\d{3})|([A-Z]{3}\d)/i)) {
-
+    if ((matched = curS.match(/([A-Z]\d{3})|([A-Z]{3}\d)/i))) {
         if (this.showDebug) {
             console.log("room validated", matched[0]);
         }
         return matched[0];
     } else {
-        this.errMsg("Invalid room code \n Expected format : 'X000' or '000X' (e.g., 'C001' or 'EXT1')", curS);
+        this.errMsg(
+            "Invalid room code \n Expected format : 'X000' or '000X' (e.g., 'C001' or 'EXT1')",
+            curS
+        );
     }
-}
+};
 
 module.exports = CruParser;
