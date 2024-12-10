@@ -115,11 +115,25 @@ cli
 			analyzer.parse(data);
 
 			//if (analyzer.errorCount === 0) {
+			// Find all the different rooms
+			function extractRooms(data) {
+				const roomPattern = /S=([A-Za-z0-9]+)/g;
+				const rooms = [];
+				let match;
+
+				while ((match = roomPattern.exec(data)) !== null) {
+					rooms.push(match[1]);
+				}
+				return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
+			}
+
+			const allRooms = extractRooms(data);
+
 			// find the given room in the database
-			const roomToSearch = analyzer.ParsedCourse.find(room => room.timeSlots === args.room);
+			const roomToSearch = allRooms.find(room => room === args.room);
 
 			// Stoque tous les crénaux trouvables dans la base de données
-			function uniqueSchedules(data) {
+			/*function uniqueSchedules(data) {
 				const schedulePattern = /H=(L|MA|ME|J|V|S) (([8-9]|1[0-9]|20):[0-5][0-9])/g;
 				const schedules = [];
 				let match;
@@ -129,9 +143,9 @@ cli
 				}
 
 				return schedules.filter((value, index, self) => self.indexOf(value) === index); // Supprime les doublons
-			}
-
-			function allSchedules(data) {
+			}*/
+			// Stoque tous les crénaux de 30 minutes pour les jours, de 8h à 20h, de la semaine, sans le dimanche.
+			function allSchedules() {
 				const daysOfWeek = ["L", "MA", "ME", "J", "V", "S"];
 				const startHour = 8;  // Heure de début (8h)
 				const endHour = 20;   // Heure de fin (20h)
@@ -159,15 +173,17 @@ cli
 				const occupiedSlots = [];
 				const dayMapping = { "L": 1, "MA": 2, "ME": 3, "J": 4, "V": 5, "S": 6 };
 
-				room.timeSlots.forEach(slot => {
+				analyzer.ParsedCourse.timeSlots.forEach(slot => {
 					const dayOfWeek = dayMapping[slot.heure.split(" ")[0]]; // Récupère le jour
 					const timeRange = slot.heure.split(" ")[1]; // Récupère "08:00-10:00"
-					occupiedSlots.push(slot); //Ajoute le crénaux au tableau des crénaux occupés
-					console.log(`The room is occupied during the time slot: ${slot.horaire}`);
+					if (slot.room === roomToSearch){
+						occupiedSlots.push(`${dayOfWeek} ${timeRange}`); //Ajoute le crénaux au tableau des crénaux occupés
+						console.log(`The room is occupied during the time slot: ${slot.schedule}`);
+					}					
 				});
 
 				// Calculer les moments où la salle est disponible
-				const allFreeMoment = allSchedules(data);
+				const allFreeMoment = allSchedules();
 				const availabilityRoom = allFreeMoment.filter(slot => !occupiedSlots.includes(slot));
 
 				if (availabilityRoom.length > 0) {
@@ -190,8 +206,8 @@ cli
 	.command('occupancyRoom', 'Track the occupancy of a room during a specific time period')
 	.argument('<file>', 'The Cru file to search')
 	.argument('<room>', 'The room you want to track the occupancy')
-	.option('<startTime>', 'The start time for the tracking period (e.g., Me 08:30)')
-	.option('<endTime>', 'The end time for the tracking period (e.g., V 10:00)')
+	.option('--start-time <startTime>', 'The start time for the tracking period (e.g., Me 08:30)', { default: 'L 08:00' })
+	.option('--end-time <endTime>', 'The end time for the tracking period (e.g., V 10:00)', { default: 'V 20:00' })
 	.action(({ args, option, logger }) => {
 		fs.readFile(args.file, 'utf8', function (err, data) {
 			if (err) {
@@ -202,11 +218,25 @@ cli
 			analyzer.parse(data);
 
 			//if (analyzer.errorCount === 0) {
+			// Find all the different rooms
+			function extractRooms(data) {
+				const roomPattern = /S=([A-Za-z0-9]+)/g;
+				const rooms = [];
+				let match;
+
+				while ((match = roomPattern.exec(data)) !== null) {
+					rooms.push(match[1]);
+				}
+				return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
+			}
+			
+			const allRooms = extractRooms(data);
+			
 			// find the given room in the database
-			const roomToSearch = analyzer.ParsedCourse.find(room => room.timeSlots === args.room);
+			const roomToSearch = allRooms.find(room => room === args.room);
 
 			// Stoque tous les crénaux trouvables dans la base de données
-			function uniqueSchedules(data) {
+			/*function uniqueSchedules(data) {
 				const schedulePattern = /H=(L|MA|ME|J|V|S) (([8-9]|1[0-9]|20):[0-5][0-9])/g;
 				const schedules = [];
 				let match;
@@ -216,9 +246,9 @@ cli
 				}
 
 				return schedules.filter((value, index, self) => self.indexOf(value) === index); // Supprime les doublons
-			}
+			}*/
 
-			function allSchedules(data) {
+			function allSchedules() {
 				const daysOfWeek = ["L", "MA", "ME", "J", "V", "S"];
 				const startHour = 8;  // Heure de début (8h)
 				const endHour = 20;   // Heure de fin (20h)
@@ -243,42 +273,35 @@ cli
 			// if the room is found
 			if (roomToSearch) {
 				// Trouver les moments où est occupée la salle
-				const occupiedSlots = [];
-				//const dayMapping = { "L": 1, "MA": 2, "ME": 3, "J": 4, "V": 5, "S": 6 };
+								const occupiedSlots = [];
+				const dayMapping = { "L": 1, "MA": 2, "ME": 3, "J": 4, "V": 5, "S": 6 };
 
-				room.timeSlots.forEach(slot => {
-					//const dayOfWeek = dayMapping[slot.heure.split(" ")[0]]; // Récupère le jour
+				analyzer.ParsedCourse.timeSlots.forEach(slot => {
+					const dayOfWeek = dayMapping[slot.heure.split(" ")[0]]; // Récupère le jour
 					const timeRange = slot.heure.split(" ")[1]; // Récupère "08:00-10:00"
 					const [slotStart, slotEnd] = timeRange.split("-");
 
-					if (option.startTime && option.endTime){
-						var startTime = option.startTime;
-						var endTime = option.endTime;
-					} else {
-						var startTime = "L 08:00";
-						var endTime = "V 20:00";
-					}
-					
-
-					// Check if the slot overlaps with the requested time range
 					if (
-						(slotStart >= startTime && slotStart < endTime) ||
-						(slotEnd > startTime && slotEnd <= endTime)
+						(slotStart >= option.startTime && slotStart < option.endTime) ||
+						(slotEnd > option.startTime && slotEnd <= option.endTime)
 					) {
-						occupiedSlots.push(slot); //Ajoute le crénaux au tableau des crénaux occupés
-					}
-
-					// Affiche en bullet point
-					if (occupiedSlots.length > 0){
-						console.log(`The room ${args.room} is occupied on the following slots:`);
-						occupiedSlots.forEach(slot => logger.info(`- ${slot}`));
-					}else {
-						logger.warn(`The room ${args.room} is never occupied between ${startTime} and ${endTime} `);
-					}
+						if (slot.room === roomToSearch){
+							occupiedSlots.push(`${dayOfWeek} ${timeRange}`); //Ajoute le crénaux au tableau des crénaux occupés
+							console.log(`The room is occupied during the time slot: ${slot.schedule}`);
+						}
+					}								
 				});
 
+				// Affiche en bullet point
+				if (occupiedSlots.length > 0) {
+					console.log(`The room ${args.room} is occupied on the following slots:`);
+					occupiedSlots.forEach(slot => logger.info(`- ${slot}`));
+				} else {
+					logger.warn(`The room ${args.room} is never occupied between ${startTime} and ${endTime} `);
+				};
+
 				// Calculer les moments où la salle est disponible
-				const allFreeMoment = allSchedules(data);
+				const allFreeMoment = allSchedules();
 				const availabilityRoom = allFreeMoment.filter(slot => !occupiedSlots.includes(slot));
 
 				// Affiche en bullet point

@@ -288,7 +288,7 @@ CruParser.prototype.time_end = function (input) {
         console.log("curS Time End", curS);
     }
     if (matched = curS.match(/([8-9]|1[0-9]|2[0-2]):[0-5][0-9]/i)) {
-        if (this.showDebug) {
+          if (this.showDebug) {
             console.log("time_end validated", matched[0]);
         }
         return matched[0];
