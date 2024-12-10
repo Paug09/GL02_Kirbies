@@ -95,13 +95,13 @@ cli
 		});
 	})
 
-	//search room with a given time slot
 	.command('RoomsForSlot', 'Looks for the rooms available at a given time slot')
 	.argument('<file>', 'The Cru file to search')
 	.argument('<day>', 'The day you want to know the available rooms (L, MA, ME, J, V, or S)')
-	.argument('<timeSlot>', 'The time slot you want to search (e.g., 14:00-16:00)')
+	.argument('<timeSlot>', 'The time slot you want to search (e.g., 08:00-10:00)')
 	.action(({ args, logger }) => {
-		// Lire le fichier .cru
+		let schedule = args.day + ' ' + args.timeSlot
+
 		fs.readFile(args.file, 'utf8', function (err, data) {
 			if (err) {
 				return logger.warn(err);
@@ -111,54 +111,46 @@ cli
 			analyzer.parse(data);
 
 			//if (analyzer.errorCount === 0) {
-			// Fonction pour extraire toutes les salles uniques du fichier
-			function extractRooms(data) {
-				const roomPattern = /S=([A-Za-z0-9]+)/g;
-				const rooms = [];
-				let match;
+				// Find all the different rooms
+				function extractRooms(data) {
+					const roomPattern = /S=([A-Za-z0-9]+)/g;
+					const rooms = [];
+					let match;
 
-				while ((match = roomPattern.exec(data)) !== null) {
-					rooms.push(match[1]);
+					while ((match = roomPattern.exec(data)) !== null) {
+						rooms.push(match[1]);
+					}
+					return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
 				}
 
-				return rooms.filter((value, index, self) => self.indexOf(value) === index); // Supprime les doublons
-			}
+				const allRooms = extractRooms(data);
 
-			// Extraire les salles uniques
-			const allRooms = extractRooms(data);
-
-			// Trouver les salles occupées
-			const occupiedRooms = [];
-			const dayMapping = {"L": 1, "MA": 2, "ME": 3, "J": 4, "V": 5, "S": 6};
-
-			analyzer.ParsedCourse.forEach(course => {
-				course.timeSlots.forEach(slot => {
-					const dayOfWeek = dayMapping[slot.heure.split(" ")[0]]; // Récupère le jour
-					const timeRange = slot.heure.split(" ")[1]; // Récupère "08:00-10:00"
-					// Vérifier si le jour et le créneau correspondent
-					if (dayOfWeek === args.day && timeRange === args.timeSlot) {
-						occupiedRooms.push(slot.salle);
-						console.log(`Salle occupée : ${slot.salle}`)
-					}
+				// Find all the occupied rooms
+				const occupiedRooms = [];
+				analyzer.ParsedCourse.forEach(course => {
+					course.timeSlots.forEach(slot => {
+						if (slot.horaire === schedule) {
+							console.log(`Room not available : ${slot.salle}`);
+							occupiedRooms.push(slot.salle);
+						}
+					});
 				});
-			});
 
-			// Calculer les salles disponibles
-			const availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
+				// Calculate the available rooms
+				const availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
 
-			if (availableRooms.length > 0) {
-				logger.info(`Rooms available on ${args.day} during the time slot ${args.timeSlot}:`);
-				availableRooms.forEach(room => logger.info(`- ${room}`));
-			} else {
-				logger.warn(`No rooms available on ${args.day} during the time slot ${args.timeSlot}.`);
-			}
-			/*} else {
-				logger.info("The .cru file contains errors.".red);
-			}*/
+				// Print the result
+				if (availableRooms.length > 0) {
+					logger.info(`Rooms available on ${args.day} during the time slot ${args.timeSlot}:`);
+					availableRooms.forEach(room => console.log(`- ${room}`));
+				} else {
+					logger.warn(`No rooms available on ${args.day} during the time slot ${args.timeSlot}.`);
+				}
+			//} else {
+			//	logger.info("The .cru file contains errors.".red);
+			//}
 		});
 	});
-
-
 
 
 
