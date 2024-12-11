@@ -1,15 +1,15 @@
 const fs = require('fs');
-//const colors = require('colors');
+const colors = require('colors');
 const CruParser = require('./CruParser.js');
 
-//const vg = require('vega');
-//const vegalite = require('vega-lite');
+const vg = require('vega');
+const vegalite = require('vega-lite');
 
 const cli = require("@caporal/core").default;
 
 cli
 	.version('cru-parser-cli')
-	.version('0.01')
+	.version('0.05')
 	// check Cru
 	.command('check', 'Check if <file> is a valid Cru file')
 	.argument('<file>', 'The file to check with Cru parser')
@@ -72,7 +72,7 @@ cli
 
 			//if (analyzer.errorCount === 0) {
 			// find the given course in the database
-			const courseToSearch = analyzer.ParsedCourse.find(course => course.courseCode === args.course);
+			let courseToSearch = analyzer.ParsedCourse.find(course => course.courseCode === args.course);
 
 			// if the course is found
 			if (courseToSearch) {
@@ -82,7 +82,7 @@ cli
 					console.log(`- ${ts.salle}`);
 
 					if (options.capacity) {
-						const capacity = parseInt(ts.capacite);
+						let capacity = parseInt(ts.capacite);
 						console.log(`  Capacity: ${capacity}`);
 					}
 				});
@@ -100,8 +100,12 @@ cli
 	.argument('<day>', 'The day you want to know the available rooms (L, MA, ME, J, V, or S)')
 	.argument('<timeSlot>', 'The time slot you want to search (e.g., 08:00-10:00)')
 	.action(({ args, logger }) => {
-		let schedule = args.day + ' ' + args.timeSlot
 		const dayOfTheWeek = { "L": "Lundi", "MA": "Mardi", "ME": "Mercredi", "J": "Jeudi", "V": "Vendredi", "S": "Samedi" };
+
+		let beginningTimeSlot = args.timeSlot.split('-')[0]
+		let beginningToCompare = parseInt(beginningTimeSlot.split(':')[0])
+		let endTimeSlot = args.timeSlot.split('-')[1]
+		let endToCompare = parseInt(endTimeSlot.split(':')[0])
 
 		fs.readFile(args.file, 'utf8', function (err, data) {
 			if (err) {
@@ -127,18 +131,35 @@ cli
 			const allRooms = extractRooms(data);
 
 			// Find all the occupied rooms
-			const occupiedRooms = [];
+			let occupiedRooms = [];
 			analyzer.ParsedCourse.forEach(course => {
 				course.timeSlots.forEach(slot => {
-					if (slot.horaire === schedule) {
-						console.log(`Room not available : ${slot.salle}`);
-						occupiedRooms.push(slot.salle);
-					}
+
+					// Extract only the hour, not the minutes of the time slots of the data set
+					let hours = slot.horaire.split(' ')[1]
+					let beginningSlotTime = hours.split('-')[0]
+					let beginningSlotHour = parseInt(beginningSlotTime.split(':')[0])
+
+					let endSlotTime = hours.split('-')[1]
+					let endSlotHour = parseInt(endSlotTime.split(':')[0])
+
+					// Extract only the day of the time slots of the data set
+					let slotDay = slot.horaire.split(' ')[0]
+
+					let isOverlapping = 
+                        (beginningSlotHour >= beginningToCompare && beginningSlotHour < endToCompare) ||  // Début dans l'intervalle
+                        (endSlotHour > beginningToCompare && endSlotHour <= endToCompare) ||             // Fin dans l'intervalle
+                        (beginningSlotHour <= beginningToCompare && endSlotHour >= endToCompare);        // Couvre tout l'intervalle
+
+                    if (slotDay === args.day && isOverlapping) {
+                        //console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
+                        occupiedRooms.push(slot.salle);
+                    }
 				});
 			});
 
 			// Calculate the available rooms
-			const availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
+			let availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
 
 			// Print the result
 			if (availableRooms.length > 0) {
@@ -168,10 +189,10 @@ cli
 			analyzer.parse(data);
 
 			//if (analyzer.errorCount === 0) {
-			const overlaps = []; // List to stock the overlapping courses
+			let overlaps = []; // List to stock the overlapping courses
 
 			// Group the time slots by room
-			const roomSchedules = {};
+			let roomSchedules = {};
 			analyzer.ParsedCourse.forEach(course => {
 				course.timeSlots.forEach(slot => {
 					if (!roomSchedules[slot.salle]) { // is the room is not aleady in the list
@@ -201,8 +222,8 @@ cli
 
 				// Compare slots to detect overlaps
 				for (let i = 0; i < schedule.length - 1; i++) {
-					const current = schedule[i];
-					const next = schedule[i + 1];
+					let current = schedule[i];
+					let next = schedule[i + 1];
 
 					// Verify if the time slots are overlapping on the same day
 					if (current.day === next.day && current.end > next.start) {
