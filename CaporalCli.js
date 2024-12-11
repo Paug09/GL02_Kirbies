@@ -163,7 +163,7 @@ cli
 			const analyzer = new CruParser();
 			analyzer.parse(data);
 
-			//if (analyzer.errorCount === 0) {
+			if (analyzer.errorCount === 0) {
 			// Find all the different rooms
 			function extractRooms(data) {
 				const roomPattern = /S=([A-Za-z0-9]+)/g;
@@ -216,9 +216,9 @@ cli
 			} else {
 				logger.warn(`No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot}.`);
 			}
-			//} else {
-			//	logger.info("The .cru file contains errors.".red);
-			//}
+			} else {
+				logger.error("The .cru file contains errors.".red);
+			}
 		});
 	})
 
@@ -236,7 +236,7 @@ cli
 			const analyzer = new CruParser();
 			analyzer.parse(data);
 
-			//if (analyzer.errorCount === 0) {
+			if (analyzer.errorCount === 0) {
 			let overlaps = []; // List to stock the overlapping courses
 
 			// Group the time slots by room
@@ -297,9 +297,9 @@ cli
 			} else {
 				logger.info("No overlapping courses detected. The schedule is valid.");
 			}
-			//} else {
-			//	logger.error("The .cru file contains errors. Unable to verify schedule.");
-			//}
+			} else {
+				logger.error("The .cru file contains errors. Unable to verify schedule.");
+			}
 		});
 	});
 
