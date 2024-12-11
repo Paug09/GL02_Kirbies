@@ -65,7 +65,7 @@ cli.version("cru-parser-cli")
             logger.info(data);
         });
     })
-
+    //Spec 5 : Generate an .ics calendar for a student
     .command("generateCalendar", "Generate an .ics calendar for a student")
     .argument("<file>", "The Cru file to use")
     .argument("<selectedCourses>", 'Comma-separated list of course codes (e.g., "CL02,CL07")')

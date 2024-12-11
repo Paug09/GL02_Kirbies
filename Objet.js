@@ -15,7 +15,7 @@ var Time_Slot = function (I, T, P, H, G, S) {
     this.salle = S;
 }
 Time_Slot.prototype.toString = function () {
-    return `ID: ${this.id},Type: ${this.type}, Capacité: ${this.capacite}, Horaire: ${this.horaire}, Groupe: ${this.groupe}, Salle: ${this.salle}`;
+    return `ID: ${this.id}, Type: ${this.type}, Capacité: ${this.capacite}, Horaire: ${this.horaire}, Groupe: ${this.groupe}, Salle: ${this.salle}`;
 };
 
 module.exports = Time_Slot;

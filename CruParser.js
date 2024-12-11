@@ -61,33 +61,27 @@ CruParser.prototype.accept = function (s) {
 
     return idx;
 };
-// check : check whether the arg elt is on the head of the list
+// checkCourse : check whether the arg elt is on the head of the list only for a new course definition
 CruParser.prototype.checkCourse = function (s, input) {
     // Si `s` est un symbole fixe (exemple : "+" ou "//")
     if (this.symb.includes(s)) {
-        return this.accept(input[0]) === this.accept(s);
-    }}
+        return this.acceptCourse(input[0]) === this.acceptCourse(s);
+    }
+};
+// acceptCourse : verify if the arg s is part of the language symbols for a new course definition.
+CruParser.prototype.acceptCourse = function (s) {
+    var idx = this.symb.indexOf(s);
+    return idx;
+};
 // check : check whether the arg elt is on the head of the list
 CruParser.prototype.check = function (s, input) {
     // Si `s` est un symbole fixe (exemple : "+" ou "//")
     if (this.symb.includes(s)) {
         if (s === "+" && this.inTimeSlot) {
             return false; // Ignore "+" si on est dan sun time_slot
-        } 
+        }
         return this.accept(input[0]) === this.accept(s);
     }
-
-    // Sinon, c'est une catégorie dynamique (par exemple, "slot_id")
-    else if (typeof this[s] === "function") {
-        try {
-            this[s](input); // Appelle la méthode correspondante (exemple : `this.slot_id`)
-            return true;
-        } catch (e) {
-            return false; // Retourne false si la validation échoue
-        }
-    }
-    // Si la catégorie n'existe pas, on retourne false
-    return false;
 };
 
 // expect : expect the next symbol to be s.
@@ -107,14 +101,12 @@ CruParser.prototype.expect = function (s, input) {
 // <course-def> = "+" <course-code> CRLF *<time-slot>
 CruParser.prototype.course_def = function (input) {
     if (this.check("+", input)) {
-        console.log("inTimeSlot hors boucle while ", this.inTimeSlot); // Affiche la valeur de inTimeSlot
         this.expect("+", input);
         let courseCode = this.course_code(input); // Analyse le code du cours
         let timeSlots = []; // Tableau pour stocker les time_slots
-        this.inTimeSlot = true; // Indique qu'on est dans un time_slot
-        while (input.length > 0 && !this.check("+", input) ) {
+        while (input.length > 0 && !this.checkCourse("+", input)) {
             let args = this.time_slot(input); // Analyse un time_slot
-            
+
             let ts = new Time_Slot(
                 args.id,
                 args.type,
@@ -125,10 +117,7 @@ CruParser.prototype.course_def = function (input) {
             );
             timeSlots.push(ts); // Ajoute le time_slot au tableau
             this.expect("//", input); // Vérifie la fin du time_slot
-            console.log("inTimeSlot", this.inTimeSlot); // Affiche la valeur de inTimeSlot
-        }
-        this.inTimeSlot = false; // Indique qu'on a fini de traiter le time_slot
-        console.log("inTimeSlot", this.inTimeSlot); // Affiche la valeur de inTimeSlot
+        }      
         // Stocke le cours et ses time_slots
         this.ParsedCourse.push({ courseCode, timeSlots });
         // Passe au prochain course_def, s'il en reste
