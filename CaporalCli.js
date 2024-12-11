@@ -14,119 +14,106 @@ cli
 	// check Cru
 	.command('check', 'Check if <file> is a valid Cru file')
 	.argument('<file>', 'The file to check with Cru parser')
-	.option('-s, --showSymbols', 'log the analyzed symbol at each step', { validator: cli.BOOLEAN, default: false })
-	.option('-t, --showTokenize', 'log the tokenization results', { validator: cli.BOOLEAN, default: false })
-	.option('-d, --showDebug', 'log the debug information', { validator: cli.BOOLEAN, default: false })
+	.option("-s, --showSymbols", "log the analyzed symbol at each step", {
+		validator: cli.BOOLEAN,
+		default: false,
+	})
+	.option("-t, --showTokenize", "log the tokenization results", {
+		validator: cli.BOOLEAN,
+		default: false,
+	})
+	.option("-d, --showDebug", "log the debug information", {
+		validator: cli.BOOLEAN,
+		default: false,
+	})
 	.action(({ args, options, logger }) => {
-
-		fs.readFile(args.file, 'utf8', function (err, data) {
+		fs.readFile(args.file, "utf8", function (err, data) {
 			if (err) {
 				return logger.warn(err);
 			}
-cli.version("cru-parser-cli")
-    .version("0.01")
-    // check Cru
-    .command("check", "Check if <file> is a valid Cru file")
-    .argument("<file>", "The file to check with Cru parser")
-    .option("-s, --showSymbols", "log the analyzed symbol at each step", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
-    .option("-t, --showTokenize", "log the tokenization results", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
-    .option("-d, --showDebug", "log the debug information", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
-    .action(({ args, options, logger }) => {
-        fs.readFile(args.file, "utf8", function (err, data) {
-            if (err) {
-                return logger.warn(err);
-            }
 
-            var analyzer = new CruParser(
-                options.showTokenize,
-                options.showSymbols,
-                options.showDebug
-            );
-            analyzer.parse(data);
+			var analyzer = new CruParser(
+				options.showTokenize,
+				options.showSymbols,
+				options.showDebug
+			);
+			analyzer.parse(data);
 
-            if (analyzer.errorCount === 0) {
-                logger.info("The .cru file is a valid cru file".green);
-            } else {
-                logger.info("The .cru file contains error".red);
-                //Donne le nombre d'erreurs
-                logger.info("Error count : %d", analyzer.errorCount);
-            }
-            analyzer.ParsedCourse.forEach((course) => {
-                console.log(`Course Code: ${course.courseCode}`);
-                course.timeSlots.forEach((ts, index) => {
-                    console.log(`- Time Slot ${index + 1}: ${ts.toString()}`);
-                });
-            });
-            logger.debug(analyzer.parsedCourse);
-        });
-    })
+			if (analyzer.errorCount === 0) {
+				logger.info("The .cru file is a valid cru file".green);
+			} else {
+				logger.info("The .cru file contains error".red);
+				//Donne le nombre d'erreurs
+				logger.info("Error count : %d", analyzer.errorCount);
+			}
+			analyzer.ParsedCourse.forEach((course) => {
+				console.log(`Course Code: ${course.courseCode}`);
+				course.timeSlots.forEach((ts, index) => {
+					console.log(`- Time Slot ${index + 1}: ${ts.toString()}`);
+				});
+			});
+			logger.debug(analyzer.parsedCourse);
+		});
+	})
 
-    //readme
+	//readme
 	.command("readme", "Display the README.txt file")
-	.action(({  logger  }) => {
-		fs.readFile("./README.txt", "utf8", function (err,  data) {
+	.action(({ logger }) => {
+		fs.readFile("./README.txt", "utf8", function (err, data) {
 			if (err) {
 				return logger.warn(err);
 			}
 			logger.info(data);
 		});
 	})
-    //Spec 5 : Generate an .ics calendar for a student
-    .command("generateCalendar", "Generate an .ics calendar for a student")
-    .argument("<file>", "The Cru file to use")
-    .argument("<selectedCourses>", 'Comma-separated list of course codes (e.g., "CL02,CL07")')
-    .argument("<startDate>", "The start date in YYYY-MM-DD format")
-    .argument("<endDate>", "The end date in YYYY-MM-DD format")
-    .option("-o, --output <file>", "The output file", { default: "calendar.ics" })
-    .action(({ args, options, logger }) => {
-        fs.readFile(args.file, "utf8", function (err, data) {
-            var analyzer = new CruParser();
-            analyzer.parse(data);
 
-            const { selectedCourses, startDate, endDate } = args;
-            const outputFile = options.output; // Récupère le nom du fichier
-            // Assurez-vous que ParsedCourse est défini et contient les cours analysés
-            const parsedCourses = analyzer.ParsedCourse; // Remplacez par votre instance réelle
+	//Spec 5 : Generate an .ics calendar for a student
+	.command("generateCalendar", "Generate an .ics calendar for a student")
+	.argument("<file>", "The Cru file to use")
+	.argument("<selectedCourses>", 'Comma-separated list of course codes (e.g., "CL02,CL07")')
+	.argument("<startDate>", "The start date in YYYY-MM-DD format")
+	.argument("<endDate>", "The end date in YYYY-MM-DD format")
+	.option("-o, --output <file>", "The output file", { default: "calendar.ics" })
+	.action(({ args, options, logger }) => {
+		fs.readFile(args.file, "utf8", function (err, data) {
+			var analyzer = new CruParser();
+			analyzer.parse(data);
 
-            const start = new Date(startDate);
-            const end = new Date(endDate);
+			const { selectedCourses, startDate, endDate } = args;
+			const outputFile = options.output; // Récupère le nom du fichier
+			// Assurez-vous que ParsedCourse est défini et contient les cours analysés
+			const parsedCourses = analyzer.ParsedCourse; // Remplacez par votre instance réelle
 
-            if (isNaN(start) || isNaN(end)) {
-                logger.error("Invalid date format. Please use YYYY-MM-DD.");
-                return;
-            }
+			const start = new Date(startDate);
+			const end = new Date(endDate);
 
-            const events = getStudentSchedule(parsedCourses, selectedCourses, start, end);
-            if (events.length === 0) {
-                logger.info("No events found for the given courses and date range.");
-                return;
-            }
+			if (isNaN(start) || isNaN(end)) {
+				logger.error("Invalid date format. Please use YYYY-MM-DD.");
+				return;
+			}
 
-            generateICSFile(events, outputFile); // Utilise le nom de fichier passé ou celui par défaut
-            logger.info(`Calendar generated successfully: ${outputFile}`);
-        });
-    });
+			const events = getStudentSchedule(parsedCourses, selectedCourses, start, end);
+			if (events.length === 0) {
+				logger.info("No events found for the given courses and date range.");
+				return;
+			}
+
+			generateICSFile(events, outputFile); // Utilise le nom de fichier passé ou celui par défaut
+			logger.info(`Calendar generated successfully: ${outputFile}`);
+		});
+	})
 
 
-  // search rooms with a given course
-  .command('courseRoom', 'Looks for the rooms associated with a course')
-  .argument('<file>', 'The Cru file to search')
-  .argument('<course>', 'The course you want to search')
+	// search rooms with a given course
+	.command('courseRoom', 'Looks for the rooms associated with a course')
+	.argument('<file>', 'The Cru file to search')
+	.argument('<course>', 'The course you want to search')
 	.option('-c, --capacity', 'Shows capacity of the room(s)', { validator: cli.BOOLEAN, default: false })
-  .action(({ args, options, logger }) => {
-    fs.readFile(args.file, 'utf8', function (err, data) {
-      if (err) {
-        return logger.warn(err);
-      }
+	.action(({ args, options, logger }) => {
+		fs.readFile(args.file, 'utf8', function (err, data) {
+			if (err) {
+				return logger.warn(err);
+			}
 
 			const analyzer = new CruParser();
 			analyzer.parse(data);
@@ -207,15 +194,15 @@ cli.version("cru-parser-cli")
 					// Extract only the day of the time slots of the data set
 					let slotDay = slot.horaire.split(' ')[0]
 
-					let isOverlapping = 
-                        (beginningSlotHour >= beginningToCompare && beginningSlotHour < endToCompare) ||  // Début dans l'intervalle
-                        (endSlotHour > beginningToCompare && endSlotHour <= endToCompare) ||             // Fin dans l'intervalle
-                        (beginningSlotHour <= beginningToCompare && endSlotHour >= endToCompare);        // Couvre tout l'intervalle
+					let isOverlapping =
+						(beginningSlotHour >= beginningToCompare && beginningSlotHour < endToCompare) ||  // Début dans l'intervalle
+						(endSlotHour > beginningToCompare && endSlotHour <= endToCompare) ||             // Fin dans l'intervalle
+						(beginningSlotHour <= beginningToCompare && endSlotHour >= endToCompare);        // Couvre tout l'intervalle
 
-                    if (slotDay === args.day && isOverlapping) {
-                        //console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
-                        occupiedRooms.push(slot.salle);
-                    }
+					if (slotDay === args.day && isOverlapping) {
+						//console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
+						occupiedRooms.push(slot.salle);
+					}
 				});
 			});
 
