@@ -1,2 +1,5 @@
 # Ignorer le dossier des dépendances npm
 node_modules/
+
+# Ignorer le dossier TP
+TP/
