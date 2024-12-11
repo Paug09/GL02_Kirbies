@@ -1,10 +1,5 @@
 const fs = require("fs");
-const colors = require("colors");
 const CruParser = require("./CruParser.js");
-
-const vg = require("vega");
-const vegalite = require("vega-lite");
-
 const cli = require("@caporal/core").default;
 const { getStudentSchedule, generateICSFile } = require("./FonctionAnnexe"); // Importer les fonction
 
@@ -14,9 +9,8 @@ cli.version("cru-parser-cli")
     .command("check", "Check if <file> is a valid Cru file")
     .argument("<file>", "The file to check with Cru parser")
     .option("-t, --showTokenize", "log the tokenization results", {
-      validator: cli.BOOLEAN,
-      default: false,
-    
+        validator: cli.BOOLEAN,
+        default: false,
     })
     .option("-d, --showDebug", "log the debug information", {
         validator: cli.BOOLEAN,
@@ -28,10 +22,7 @@ cli.version("cru-parser-cli")
                 return logger.warn(err);
             }
 
-            const analyzer = new CruParser(
-                options.showTokenize,
-                options.showDebug
-            );
+            const analyzer = new CruParser(options.showTokenize, options.showDebug);
             analyzer.parse(data);
 
             if (analyzer.errorCount === 0) {
@@ -61,6 +52,7 @@ cli.version("cru-parser-cli")
             logger.info(data);
         });
     })
+
     //Spec 5 : Generate an .ics calendar for a student
     .command("generateCalendar", "Generate an .ics calendar for a student")
     .argument("<file>", "The Cru file to use")
@@ -95,112 +87,237 @@ cli.version("cru-parser-cli")
             generateICSFile(events, outputFile); // Utilise le nom de fichier passé ou celui par défaut
             logger.info(`Calendar generated successfully: ${outputFile}`);
         });
-    });
+    })
 
-/*
-  // search
-  .command('search', 'Free text search on POIs\' name')
-  .argument('<file>', 'The Vpf file to search')
-  .argument('<needle>', 'The text to look for in POI\'s names')
-  .action(({ args, options, logger }) => {
-    fs.readFile(args.file, 'utf8', function (err, data) {
-      if (err) {
-        return logger.warn(err);
-      }
-
-      analyzer = new VpfParser();
-      analyzer.parse(data);
-
-      if (analyzer.errorCount === 0) {
-
-        let poiAFiltrer = analyzer.parsedPOI.filter(poi=>poi.name.includes(args.needle));
-        logger.info("%s", JSON.stringify(poiAFiltrer, null, 2));
-
-      } else {
-        logger.info("The .vpf file contains error".red);
-      }
-
-    });
-  })
-
-  //average
-  .command('average', 'Compute the average note of each POI')
-  .alias('avg')
-  .argument('<file>', 'The Vpf file is to use')
-
-  // abc
-
-  // average with chart
-  .command('averageChart', 'Compute the average note of each POI and export a Vega-lite chart')
-  .alias('avgChart')
-  .argument('<file>', 'The Vpf file to use')
-  .action(({ args, options, logger }) => {
-    fs.readFile(args.file, 'utf8', function (err, data) {
-      if (err) {
-        return logger.warn(err);
-      }
-
-      analyzer = new VpfParser();
-      analyzer.parse(data);
-
-      if (analyzer.errorCount === 0) {
-
-        // ToDo: Prepare the data for avg //
-        // let avg = <un array de POI ayant un attribut "averageRatings" égal à la moyenne des notes qu'il a reçu>
-
-        var avgChart = {
-          //"width": 320,
-          //"height": 460,
-          "data": {
-            "values": avg
-          },
-          "mark": "bar",
-          "encoding": {
-            "x": {
-              "field": "name", "type": "nominal",
-              "axis": { "title": "Restaurants' name." }
-            },
-            "y": {
-              "field": "averageRatings", "type": "quantitative",
-              "axis": { "title": "Average ratings for " + args.file + "." }
+    // search rooms with a given course
+    .command("courseRoom", "Looks for the rooms associated with a course")
+    .argument("<file>", "The Cru file to search")
+    .argument("<course>", "The course you want to search")
+    .option("-c, --capacity", "Shows capacity of the room(s)", {
+        validator: cli.BOOLEAN,
+        default: false,
+    })
+    .action(({ args, options, logger }) => {
+        fs.readFile(args.file, "utf8", function (err, data) {
+            if (err) {
+                return logger.warn(err);
             }
-          }
-        }
 
+            const analyzer = new CruParser();
+            analyzer.parse(data);
 
+            //if (analyzer.errorCount === 0) {
+            // find the given course in the database
+            let courseToSearch = analyzer.ParsedCourse.find(
+                (course) => course.courseCode === args.course
+            );
 
-        const myChart = vegalite.compile(avgChart).spec;
+            // if the course is found
+            if (courseToSearch) {
+                console.log(`Rooms that welcome the course ${courseToSearch.courseCode}:`);
 
-        /* SVG version 
-        var runtime = vg.parse(myChart);
-        var view = new vg.View(runtime).renderer('svg').run();
-        var mySvg = view.toSVG();
-        mySvg.then(function (res) {
-          fs.writeFileSync("./result.svg", res)
-          view.finalize();
-          logger.info("%s", JSON.stringify(myChart, null, 2));
-          logger.info("Chart output : ./result.svg");
+                courseToSearch.timeSlots.forEach((ts) => {
+                    console.log(`- ${ts.salle}`);
+
+                    if (options.capacity) {
+                        let capacity = parseInt(ts.capacite);
+                        console.log(`  Capacity: ${capacity}`);
+                    }
+                });
+            } else {
+                logger.warn("No rooms found for the given course.");
+            }
+            //} else {
+            //	logger.warn("The .cru file contains parsing errors.");
+            //}
         });
+    })
 
-        /* Canvas version */
-/*
-        var runtime = vg.parse(myChart);
-        var view = new vg.View(runtime).renderer('canvas').background("#FFF").run();
-        var myCanvas = view.toCanvas();
-        myCanvas.then(function(res){
-          fs.writeFileSync("./result.png", res.toBuffer());
-          view.finalize();
-          logger.info(myChart);
-          logger.info("Chart output : ./result.png");
-        })			
-      	
+    .command("roomsForSlot", "Looks for the rooms available at a given time slot")
+    .argument("<file>", "The Cru file to search")
+    .argument("<day>", "The day you want to know the available rooms (L, MA, ME, J, V, or S)")
+    .argument("<timeSlot>", "The time slot you want to search (e.g., 08:00-10:00)")
+    .action(({ args, logger }) => {
+        const dayOfTheWeek = {
+            L: "Lundi",
+            MA: "Mardi",
+            ME: "Mercredi",
+            J: "Jeudi",
+            V: "Vendredi",
+            S: "Samedi",
+        };
 
+        let beginningTimeSlot = args.timeSlot.split("-")[0];
+        let beginningToCompare = parseInt(beginningTimeSlot.split(":")[0]);
+        let endTimeSlot = args.timeSlot.split("-")[1];
+        let endToCompare = parseInt(endTimeSlot.split(":")[0]);
 
-      } else {
-        logger.info("The .vpf file contains error".red);
-      }
+        fs.readFile(args.file, "utf8", function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
 
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            if (analyzer.errorCount === 0) {
+                // Find all the different rooms
+                function extractRooms(data) {
+                    const roomPattern = /S=([A-Za-z0-9]+)/g;
+                    const rooms = [];
+                    let match;
+
+                    while ((match = roomPattern.exec(data)) !== null) {
+                        rooms.push(match[1]);
+                    }
+                    return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
+                }
+
+                const allRooms = extractRooms(data);
+
+                // Find all the occupied rooms
+                let occupiedRooms = [];
+                analyzer.ParsedCourse.forEach((course) => {
+                    course.timeSlots.forEach((slot) => {
+                        // Extract only the hour, not the minutes of the time slots of the data set
+                        let hours = slot.horaire.split(" ")[1];
+                        let beginningSlotTime = hours.split("-")[0];
+                        let beginningSlotHour = parseInt(beginningSlotTime.split(":")[0]);
+
+                        let endSlotTime = hours.split("-")[1];
+                        let endSlotHour = parseInt(endSlotTime.split(":")[0]);
+
+                        // Extract only the day of the time slots of the data set
+                        let slotDay = slot.horaire.split(" ")[0];
+
+                        let isOverlapping =
+                            (beginningSlotHour >= beginningToCompare &&
+                                beginningSlotHour < endToCompare) || // Début dans l'intervalle
+                            (endSlotHour > beginningToCompare && endSlotHour <= endToCompare) || // Fin dans l'intervalle
+                            (beginningSlotHour <= beginningToCompare &&
+                                endSlotHour >= endToCompare); // Couvre tout l'intervalle
+
+                        if (slotDay === args.day && isOverlapping) {
+                            //console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
+                            occupiedRooms.push(slot.salle);
+                        }
+                    });
+                });
+
+                // Calculate the available rooms
+                let availableRooms = allRooms.filter((room) => !occupiedRooms.includes(room));
+
+                // Print the result
+                if (availableRooms.length > 0) {
+                    logger.info(
+                        `Rooms available on ${dayOfTheWeek[args.day]} during the time slot ${
+                            args.timeSlot
+                        } :`
+                    );
+                    availableRooms.forEach((room) => console.log(`- ${room}`));
+                } else {
+                    logger.warn(
+                        `No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${
+                            args.timeSlot
+                        }.`
+                    );
+                }
+            } else {
+                logger.error("The .cru file contains errors.".red);
+            }
+        });
+    })
+
+    .command("verifySchedule", "Verify if there are any overlapping courses in the schedule")
+    .argument("<file>", "The Cru file to check")
+    .action(({ args, logger }) => {
+        const fs = require("fs");
+        const dayOfTheWeek = {
+            L: "Lundi",
+            MA: "Mardi",
+            ME: "Mercredi",
+            J: "Jeudi",
+            V: "Vendredi",
+            S: "Samedi",
+        };
+
+        fs.readFile(args.file, "utf8", function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            if (analyzer.errorCount === 0) {
+                let overlaps = []; // List to stock the overlapping courses
+
+                // Group the time slots by room
+                let roomSchedules = {};
+                analyzer.ParsedCourse.forEach((course) => {
+                    course.timeSlots.forEach((slot) => {
+                        if (!roomSchedules[slot.salle]) {
+                            // is the room is not aleady in the list
+                            roomSchedules[slot.salle] = []; // we create a list corresponding to its name
+                        }
+                        roomSchedules[slot.salle].push({
+                            // in the list of the room, we add the course code, the time slot and the day when the room is occupied
+                            course: course.courseCode,
+                            start: slot.horaire.split(" ")[1].split("-")[0],
+                            end: slot.horaire.split(" ")[1].split("-")[1],
+                            day: slot.horaire.split(" ")[0],
+                        });
+                    });
+                });
+
+                // Verify the overlapping for each rooms
+                for (let room in roomSchedules) {
+                    let schedule = roomSchedules[room];
+
+                    // Sort by day and start time
+                    schedule.sort((a, b) => {
+                        if (a.day !== b.day) {
+                            return a.day.localeCompare(b.day);
+                        }
+                        return a.start.localeCompare(b.start);
+                    });
+
+                    // Compare slots to detect overlaps
+                    for (let i = 0; i < schedule.length - 1; i++) {
+                        let current = schedule[i];
+                        let next = schedule[i + 1];
+
+                        // Verify if the time slots are overlapping on the same day
+                        if (current.day === next.day && current.end > next.start) {
+                            overlaps.push({
+                                room,
+                                courses: [current.course, next.course],
+                                day: current.day,
+                                times: [
+                                    `${current.start}-${current.end}`,
+                                    `${next.start}-${next.end}`,
+                                ],
+                            });
+                        }
+                    }
+                }
+
+                // Print the results
+                if (overlaps.length > 0) {
+                    logger.warn("Overlapping courses detected:");
+                    overlaps.forEach((overlap) => {
+                        logger.info(`Room: ${overlap.room}`);
+                        console.log(`Day: ${dayOfTheWeek[overlap.day]}`);
+                        console.log(`Courses: ${overlap.courses.join(", ")}`);
+                        console.log(`Time: ${overlap.times[0]}`);
+                    });
+                } else {
+                    logger.info("No overlapping courses detected. The schedule is valid.");
+                }
+            } else {
+                logger.error("The .cru file contains errors. Unable to verify schedule.");
+            }
+        });
     });
-  }) */
 
 cli.run(process.argv.slice(2));

@@ -8,5 +8,11 @@
   },
   "devDependencies": {
     "jasmine": "^3.6.3"
-  }
+  },
+  "dependencies": {
+    "ics": "^3.8.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
