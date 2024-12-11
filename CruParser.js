@@ -1,10 +1,9 @@
 var Time_Slot = require("./Objet.js");
 
-var CruParser = function (sTokenize, sParsedSymb, sDebug) {
+var CruParser = function (sTokenize, sDebug) {
     this.ParsedCourse = [];
     this.symb = ["+", "//"];
     this.showTokenize = sTokenize;
-    this.showParsedSymbol = sParsedSymb;
     this.showDebug = sDebug;
     this.errorCount = 0;
 }
@@ -40,12 +39,9 @@ CruParser.prototype.errMsg = function (msg, input) {
 
 // Read and return a symbol from input
 CruParser.prototype.next = function (input) {
-    if (!Array.isArray(input)) {
-        throw new TypeError("Expected input to be an array, but got: " + typeof input);
-    }
     var curS = input.shift();
     if (this.showParsedSymbols) {
-        console.log(curS);
+        console.log("curS ",curS);
     }
     return curS;
 };

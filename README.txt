@@ -1,5 +1,6 @@
 ### README - Les Kirbies - GL02
 
+Description :  The caporalCLI is a command-line tool that allows managing courses and time slots. It enables defining courses with unique codes, specifying time slots with detailed information such as type, capacity, time, day, group ID, and room code. The files are in text format and should respect the following grammar.
 
 Course Definition :
 <course-def> = "+" <course-code> CRLF *(<time-slot>)
@@ -28,5 +29,63 @@ Time Slot :
 <room> = "S=" <room-code>
 <room-code> = (1ALPHA 3DIGIT) / (3ALPHA 1DIGIT)
 
-Each time slot is represented by a unique ‘slot-id’, followed by information such as type,
-participant capacity, time, day, group ID, and room code.
+Each time slot is represented by a unique ‘slot-id’, followed by information such as type, participant capacity, time, day, group ID, and room code.
+
+### Installation
+
+$ npm install
+
+### Utilisation :
+
+#Options global :
+
+-h or --help 	 :	  Display the program help
+-V, --version    :    Display version.
+--no-color       :    Disable use of colors in output.
+-v, --verbose    :    Verbose mode: will also output debug messages.        
+--quiet          :    Quiet mode - only displays warn and error messages.   
+--silent         :    Silent mode: does not output anything, giving no indication of success or failure other than the exit code.
+
+$ node caporalCli.js <command> fileToParse [args] [-options]
+
+<command> : check
+
+
+-t or --showTokenize :	Display the tokenization result 
+-d or --showDebug    : 	Display each step of the analysis
+
+<command> : generateCalendar
+
+selectedCourses :   Comma-separated list of course codes (e.g.,"CL02,CL07")
+startDate       :   The start date in YYYY-MM-DD format
+endDate         :   The end date in YYYY-MM-DD format
+
+-o or --output <file>   :   The output file where you want to save the calendar { default : "calendar.ics" }
+
+
+### Version : 
+
+
+# 0.05
+
+- Implémentation du test unitaire pour le parser
+- Erreurs du parser réglé, ne renvoie pas d'erreurs si le fichier est bon 
+
+# 0.04
+
+- Ajout de la spec 5 permettant la génération d'un iCalender entre 2 dates pour les matières voulu
+- Création d'un fichier externe permettant le regroupemment des fonctions longues en dehors du CaporalCli.js
+
+# 0.03
+
+- Ajout des options showDebug et showTokenize pour suivre les actions du parser et/ou le tableau de tokens
+
+# 0.02
+
+- Commande <check> pour vérifier l'état d'un fichier selon le parser fonctionelle
+- Parse entièrement les fichiers du jeu de test (mais termine avec plusieurs erreur)
+- Prise en compte des sauts de lignes ou espaces en trop dans le jeu de données
+
+# 0.01
+
+- Première version du parser non fonctionnelle

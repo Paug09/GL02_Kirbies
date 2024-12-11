@@ -9,17 +9,14 @@ const cli = require("@caporal/core").default;
 const { getStudentSchedule, generateICSFile } = require("./FonctionAnnexe"); // Importer les fonction
 
 cli.version("cru-parser-cli")
-    .version("0.01")
+    .version("0.05")
     // check Cru
     .command("check", "Check if <file> is a valid Cru file")
     .argument("<file>", "The file to check with Cru parser")
-    .option("-s, --showSymbols", "log the analyzed symbol at each step", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
     .option("-t, --showTokenize", "log the tokenization results", {
-        validator: cli.BOOLEAN,
-        default: false,
+      validator: cli.BOOLEAN,
+      default: false,
+    
     })
     .option("-d, --showDebug", "log the debug information", {
         validator: cli.BOOLEAN,
@@ -31,9 +28,8 @@ cli.version("cru-parser-cli")
                 return logger.warn(err);
             }
 
-            var analyzer = new CruParser(
+            const analyzer = new CruParser(
                 options.showTokenize,
-                options.showSymbols,
                 options.showDebug
             );
             analyzer.parse(data);
