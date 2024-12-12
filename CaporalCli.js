@@ -8,6 +8,12 @@ const cli = require("@caporal/core").default;
 // Import the functions to generate the ICS file
 const { getStudentSchedule, generateICSFile } = require("./GenerateICS");
 
+// Import the function to generate the pie chart
+const { generateChart } = require("./GeneratePie");
+
+//Import the functions to manage a slot
+const { generateAllSlots, getOccupiedSlots } = require("./slotManager")
+
 // Import the functions to manage users and permissions
 const { roles, users, checkPermission, promptUserForName } = require("./userManager.js");
 
@@ -450,6 +456,58 @@ cli.version("cru-parser-cli")
             } else {
                 logger.error("The .cru file contains errors. Unable to verify schedule.");
             }
+        });
+    })
+
+    .command('roomOccupancy', 'Generates a pie chart of room occupancy based on the .cru file')
+    .argument('<file>', 'The Cru file to analyze')
+    .action(({ args, logger }) => {
+        fs.readFile(args.file, 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            // Étape 1 : Récupérer les créneaux occupés pour chaque salle
+            const roomOccupancyData = [];
+            analyzer.ParsedCourse.forEach(course => {
+                course.timeSlots.forEach(slot => {
+                    const room = slot.salle;
+                    const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, room);
+                    const totalSlots = 28 * 6 - 20; // Exemple : 28 créneaux de 30 minutes par semaine (8h à 22h)
+                    let occupiedCount = occupiedSlots.length;
+                    console.log(`OccupiedCount = ${occupiedCount}`)
+                    if (!roomOccupancyData.some(roomData => roomData.room === room)) {
+                        roomOccupancyData.push({
+                            room,
+                            occupiedCount,
+                            totalSlots,
+                            capacity: slot.capacite // Si disponible dans le fichier .cru
+                        });
+                    }
+
+                });
+            });
+
+
+            // Étape 2 : Classer les salles par capacité puis par taux d'occupation
+            roomOccupancyData.sort((a, b) => {
+                if (a.capacity === b.capacity) {
+                    return (b.occupiedCount / b.totalSlots) - (a.occupiedCount / a.totalSlots);
+                }
+                return b.capacity - a.capacity; // Trier d'abord par capacité
+            });
+
+            // Étape 3 : Générer le graphique pour chaque salle
+            roomOccupancyData.forEach(roomData => {
+                const chartUrl = generateChart(roomData.room, roomData.occupiedCount, roomData.totalSlots);
+                logger.info(`Room: ${roomData.room}`);
+                logger.info(`Capacity: ${roomData.capacity}`);
+                logger.info(`Occupancy: ${((roomData.occupiedCount / roomData.totalSlots) * 100).toFixed(2)}%`);
+                logger.info(`Chart URL: ${chartUrl}`);
+            });
         });
     });
 
