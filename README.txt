@@ -98,6 +98,9 @@ file		:   The Cru file where you want to search (e.g. "edt.cru")
 
 ### Version : 
 
+# 0.07
+- Ajout d'un système d'authentification pour les commandes qui ont des restrictions sur les utilisateurs qui les utilisent
+
 # 0.06
 - Ajout des spec 1, 2 et 4 permettant de trouver des salles selon différents critères (cours, disponibilité selon date et heure)
 - Ajout de la spec 6 qui permet de vérifier qu'aucun cours n'a lieu au même moment dans la même salle

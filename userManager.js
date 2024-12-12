@@ -1,5 +1,6 @@
 const readline = require("readline");
 const fs = require("fs");
+const { logger } = require("vega");
 
 const roles = {
     admin: 0,

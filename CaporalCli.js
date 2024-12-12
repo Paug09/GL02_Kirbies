@@ -13,25 +13,10 @@ cli.version("cru-parser-cli")
     // check Cru
     .command("check", "Check if <file> is a valid Cru file")
     .argument("<file>", "The file to check with Cru parser")
-    .option("-t, --showTokenize", "log the tokenization results", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
-    .option("-d, --showDebug", "log the debug information", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
-    .action(async ({ args, options, logger }) => {
-        const username = await promptUserForName();
-        const hasPermission = checkPermission(username, users, roles.teacher);
-
-        if (!hasPermission) {
-            logger.error("Access denied. This command is restricted to teachers and admins.");
-            return;
-        }
-
-        logger.info("Access granted. Here are the parsed courses:");
-        fs.readFile(args.file, "utf8", async function (err, data) {
+    .option("-t, --showTokenize", "log the tokenization results", { validator: cli.BOOLEAN, default: false })
+    .option("-d, --showDebug", "log the debug information", { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
+        fs.readFile(args.file, "utf8", function (err, data) {
             if (err) {
                 return logger.warn(err);
             }
@@ -72,10 +57,7 @@ cli.version("cru-parser-cli")
     .command("findCourseRooms", "Looks for the rooms associated with a course")
     .argument("<file>", "The Cru file to search")
     .argument("<course>", "The course you want to search")
-    .option("-c, --capacity", "Shows capacity of the room(s)", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
+    .option("-c, --capacity", "Shows capacity of the room(s)", { validator: cli.BOOLEAN, default: false })
     .action(({ args, options, logger }) => {
         fs.readFile(args.file, "utf8", function (err, data) {
             if (err) {
@@ -87,9 +69,7 @@ cli.version("cru-parser-cli")
 
             if (analyzer.errorCount === 0) {
                 // find the given course in the file
-                let courseToSearch = analyzer.ParsedCourse.find(
-                    (course) => course.courseCode === args.course
-                );
+                let courseToSearch = analyzer.ParsedCourse.find((course) => course.courseCode === args.course);
 
                 // if the course is found
                 if (courseToSearch) {
@@ -127,25 +107,23 @@ cli.version("cru-parser-cli")
             analyzer.parse(data);
 
             if (analyzer.errorCount === 0) {
-                let found = false
-                let capacity = 0
+                let found = false;
+                let capacity = 0;
 
                 // search for the room in the file
                 analyzer.ParsedCourse.forEach((course) => {
                     course.timeSlots.forEach((ts) => {
-
                         // if the room was found
                         if (ts.salle === args.room) {
-                            found = true
+                            found = true;
                             capacity = parseInt(ts.capacite);
                         }
                     });
                 });
                 if (found === true) {
                     console.log(`Capacity of the room ${args.room} : ${capacity}`);
-                }
-                else {
-                    console.error(`The room ${args.room} was not found in the given file.`)
+                } else {
+                    console.error(`The room ${args.room} was not found in the given file.`);
                 }
             } else {
                 logger.error("The .cru file contains parsing errors.");
@@ -159,7 +137,6 @@ cli.version("cru-parser-cli")
     .argument("<day>", "The day you want to know the available rooms (L, MA, ME, J, V, or S)")
     .argument("<timeSlot>", "The time slot you want to search (e.g., 08:00-10:00)")
     .action(({ args, logger }) => {
-
         // convert the first letter of the day to the entire word
         const dayOfTheWeek = {
             L: "Lundi",
@@ -219,7 +196,7 @@ cli.version("cru-parser-cli")
                             (beginningSlotHour <= beginningToCompare && endSlotHour >= endToCompare); // does the time slot covers the entire interval
 
                         if (slotDay === args.day && isOverlapping) {
-                            //if we want to know wich rooms are unavailable : 
+                            //if we want to know wich rooms are unavailable :
                             //console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
                             occupiedRooms.push(slot.salle);
                         }
@@ -234,7 +211,9 @@ cli.version("cru-parser-cli")
                     logger.info(`Rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot} :`);
                     availableRooms.forEach((room) => console.log(`- ${room}`));
                 } else {
-                    logger.warn(`No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot}.`);
+                    logger.warn(
+                        `No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot}.`
+                    );
                 }
             } else {
                 logger.error("The .cru file contains errors.".red);
@@ -281,7 +260,16 @@ cli.version("cru-parser-cli")
     // SPEC 6 : check the data quality
     .command("verifySchedule", "Verify if there are any overlapping courses in the schedule")
     .argument("<file>", "The Cru file to check")
-    .action(({ args, logger }) => {
+    .action(async ({ args, logger }) => {
+        const username = await promptUserForName();
+        const hasPermission = checkPermission(username, users, roles.admin);
+
+        if (!hasPermission) {
+            logger.error("Access denied. This command is restricted to admins.");
+            return;
+        }
+
+        logger.info("Access granted. Here are the parsed courses:");
         const fs = require("fs");
         const dayOfTheWeek = {
             L: "Lundi",
@@ -344,10 +332,7 @@ cli.version("cru-parser-cli")
                                 room,
                                 courses: [current.course, next.course],
                                 day: current.day,
-                                times: [
-                                    `${current.start}-${current.end}`,
-                                    `${next.start}-${next.end}`,
-                                ],
+                                times: [`${current.start}-${current.end}`, `${next.start}-${next.end}`],
                             });
                         }
                     }
