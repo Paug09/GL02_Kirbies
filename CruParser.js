@@ -131,7 +131,7 @@ CruParser.prototype.course_code = function (input) {
     if (this.showDebug) {
         console.log("curS Course Code", curS);
     }
-    if ((matched = curS.match(/[A-Z]{2,3}\d{1,2}[A-Z]?\d?/i))) {
+    if ((matched = curS.match(/^[A-Z]{2,3}\d{1,2}[A-Z]?\d?$/i))) {
         if (this.showDebug) {
             console.log("course_code validé", matched[0]);
         }
@@ -171,7 +171,7 @@ CruParser.prototype.slot_id = function (input) {
     if (this.showDebug) {
         console.log("curS Slot ID", curS);
     }
-    if ((matched = curS.match(/(^\d)/i))) {
+    if ((matched = curS.match(/^\d$/i))) {
         if (this.showDebug) {
             console.log("slot_id validated", matched[0]);
         }
@@ -187,7 +187,7 @@ CruParser.prototype.type = function (input) {
     if (this.showDebug) {
         console.log("curS Type", curS);
     }
-    if ((matched = curS.match(/[A-Z]\d/i))) {
+    if ((matched = curS.match(/^[A-Z]\d$/i))) {
         if (this.showDebug) {
             console.log("type validated", matched[0]);
         }
@@ -204,7 +204,7 @@ CruParser.prototype.capacity = function (input) {
     if (this.showDebug) {
         console.log("curS Capacity", curS);
     }
-    if ((matched = curS.match(/\d{1,3}/i))) {
+    if ((matched = curS.match(/^\d{1,3}$/i))) {
         if (this.showDebug) {
             console.log("capacity validated", matched[0]);
         }
@@ -229,7 +229,7 @@ CruParser.prototype.day = function (input) {
     if (this.showDebug) {
         console.log("curS Day", curS);
     }
-    if ((matched = curS.match(/(L|MA|ME|J|V|S)/i))) {
+    if ((matched = curS.match(/^(L|MA|ME|J|V|S)$/i))) {
         if (this.showDebug) {
             console.log("day validated", matched[0]);
         }
@@ -253,7 +253,7 @@ CruParser.prototype.time_start = function (input) {
     if (this.showDebug) {
         console.log("curS Time Start", curS);
     }
-    if ((matched = curS.match(/([8-9]|1[0-9]|20):[0-5][0-9]/i))) {
+    if ((matched = curS.match(/^([8-9]|1[0-9]|20):[0-5][0-9]$/i))) {
         if (this.showDebug) {
             console.log("time_start validated", matched[0]);
         }
@@ -262,24 +262,6 @@ CruParser.prototype.time_start = function (input) {
         this.errMsg("Invalid start time. Expected format: 'HH:MM' ('08:30' to '20:59' max) ", curS);
     }
 };
-// -------Ou ca pour vérifier les heures et minutes séparrement-----\\
-// CruParser.prototype.time_start = function (input, minHour = 8, maxHour = 20) {
-//     var curS = this.next(input);
-
-//     if (!curS.match(/^\d{1,2}:\d{2}$/)) {
-//         this.errMsg("Invalid start time. Expected format 'HH:MM'.", input);
-//         return;
-//     }
-
-//     let [hours, minutes] = curS.split(":").map(Number);
-
-//     if (hours < minHour || hours > maxHour || minutes < 0 || minutes >= 60) {
-//         this.errMsg(`Invalid start time: '${curS}'. Must be between ${minHour}:00 and ${maxHour}:00.`, input);
-//         return;
-//     }
-
-//     return curS;
-// };
 
 //<time-end> = 1-2DIGIT ":" 2DIGIT
 CruParser.prototype.time_end = function (input) {
@@ -287,7 +269,7 @@ CruParser.prototype.time_end = function (input) {
     if (this.showDebug) {
         console.log("curS Time End", curS);
     }
-    if (matched = curS.match(/([8-9]|1[0-9]|2[0-2]):[0-5][0-9]/i)) {
+    if (matched = curS.match(/^([8-9]|1[0-9]|2[0-2]):[0-5][0-9]$/i)) {
         if (this.showDebug) {
             console.log("time_end validated", matched[0]);
         }
@@ -306,7 +288,7 @@ CruParser.prototype.group_id = function (input) {
     if (this.showDebug) {
         console.log("curS Group ID", curS);
     }
-    if ((matched = curS.match(/(F[0-9])/i))) {
+    if ((matched = curS.match(/^F[0-9]$/i))) {
         if (this.showDebug) {
             console.log("group_id validated", matched[0]);
         }
@@ -324,7 +306,7 @@ CruParser.prototype.room = function (input) {
     if (this.showDebug) {
         console.log("curS Room", curS);
     }
-    if ((matched = curS.match(/([A-Z]\d{3})|([A-Z]{3}\d)/i))) {
+    if ((matched = curS.match(/^(([A-Z]\d{3})|([A-Z]{3}\d))$/i))) {
         if (this.showDebug) {
             console.log("room validated", matched[0]);
         }

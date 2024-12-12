@@ -3,6 +3,7 @@
 // Import neccessary modules
 const fs = require("fs");
 const CruParser = require("./CruParser.js");
+const color = require("colors");
 const cli = require("@caporal/core").default;
 
 // Import the functions to generate the ICS file
@@ -45,6 +46,7 @@ cli.version("cru-parser-cli")
 
             if (analyzer.errorCount === 0) {
                 logger.info("The .cru file is a valid cru file".green);
+                console.log("No errors found");
             } else {
                 logger.info("The .cru file contains error".red);
                 // Display how many errors there are
