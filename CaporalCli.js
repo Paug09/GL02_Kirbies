@@ -198,6 +198,8 @@ cli.version("cru-parser-cli")
 
             const analyzer = new CruParser();
             analyzer.parse(data);
+            const analyzer = new CruParser();
+            analyzer.parse(data);
 
             if (analyzer.errorCount === 0) {
                 // Find all the different rooms
@@ -334,6 +336,8 @@ cli.version("cru-parser-cli")
                 return logger.warn(err);
             }
 
+            const analyzer = new CruParser();
+            analyzer.parse(data);
             const analyzer = new CruParser();
             analyzer.parse(data);
 
