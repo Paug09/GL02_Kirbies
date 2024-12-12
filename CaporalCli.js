@@ -1,7 +1,12 @@
 const fs = require("fs");
 const CruParser = require("./CruParser.js");
 const cli = require("@caporal/core").default;
-const { getStudentSchedule, generateICSFile } = require("./FonctionAnnexe"); // Importer les fonction
+
+// Importer les fonctions nécéssaires à la génération de l'ICS
+const { getStudentSchedule, generateICSFile } = require("./GenerateICS");
+
+// Importer les fonctions nécéssaires à l'authentification et à la vérification des permissions
+const { roles, users, checkPermission, promptUserForName } = require("./userManager.js");
 
 cli.version("cru-parser-cli")
     .version("0.06")
@@ -16,8 +21,17 @@ cli.version("cru-parser-cli")
         validator: cli.BOOLEAN,
         default: false,
     })
-    .action(({ args, options, logger }) => {
-        fs.readFile(args.file, "utf8", function (err, data) {
+    .action(async ({ args, options, logger }) => {
+        const username = await promptUserForName();
+        const hasPermission = checkPermission(username, users, roles.teacher);
+
+        if (!hasPermission) {
+            logger.error("Access denied. This command is restricted to teachers and admins.");
+            return;
+        }
+
+        logger.info("Access granted. Here are the parsed courses:");
+        fs.readFile(args.file, "utf8", async function (err, data) {
             if (err) {
                 return logger.warn(err);
             }
@@ -32,6 +46,7 @@ cli.version("cru-parser-cli")
                 // display how many errors there are
                 logger.info("Error count : %d", analyzer.errorCount);
             }
+
             analyzer.ParsedCourse.forEach((course) => {
                 console.log(`Course Code: ${course.courseCode}`);
                 course.timeSlots.forEach((ts, index) => {
