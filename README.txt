@@ -48,18 +48,28 @@ $ npm install
 
 $ node caporalCli.js <command> fileToParse [args] [-options]
 
+
 <command> : check
+
 
 -t or --showTokenize :	Display the tokenization result 
 -d or --showDebug    : 	Display each step of the analysis
+
 
 <command> : findCourseRooms
 
 
 file		:   The Cru file where you want to search (e.g. "edt.cru")
-course		:   The couse for which you want to know the associated rooms (e.g. "CM02")
+course		:   The course for which you want to know the associated rooms (e.g. "CM02")
 
 -c or --capacity : Display the capacity of the rooms associated with the given course
+
+
+<command> : findRomCapacity
+
+
+file		:   The Cru file where you want to search (e.g. "edt.cru")
+room		:   The room for which you want to know the capacity (e.g. "A105")
 
 
 <command> : findAvailableRooms
@@ -78,6 +88,12 @@ startDate       :   The start date in YYYY-MM-DD format
 endDate         :   The end date in YYYY-MM-DD format
 
 -o or --output <file>   :   The output file where you want to save the calendar { default : "calendar.ics" }
+
+
+<command> : verifySchedule
+
+
+file		:   The Cru file where you want to search (e.g. "edt.cru")
 
 
 ### Version : 
