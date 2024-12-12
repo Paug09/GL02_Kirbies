@@ -9,10 +9,7 @@ const cli = require("@caporal/core").default;
 const { getStudentSchedule, generateICSFile } = require("./GenerateICS");
 
 // Import the function to generate the pie chart
-const { generateChart } = require("./GeneratePie");
-
-//Import the functions to manage a slot
-const { generateAllSlots, getOccupiedSlots } = require("./slotManager")
+const { generateChart } = require("./GeneratePieChart.js");
 
 // Import the functions to manage users and permissions
 const { roles, users, checkPermission, promptUserForName } = require("./userManager.js");
@@ -459,6 +456,13 @@ cli.version("cru-parser-cli")
         });
     })
 
+    
+    /**
+     * SPEC 8/9 : Generate a pie chart of room occupancy based on the .cru file
+     * @argument {string} file - The Cru file to analyze.
+     * @example
+     * $ node caporalCli.js roomOccupancy SujetA_data/CD/edt.cru
+     */
     .command('roomOccupancy', 'Generates a pie chart of room occupancy based on the .cru file')
     .argument('<file>', 'The Cru file to analyze')
     .action(({ args, logger }) => {
@@ -478,7 +482,6 @@ cli.version("cru-parser-cli")
                     const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, room);
                     const totalSlots = 28 * 6 - 20; // Exemple : 28 créneaux de 30 minutes par semaine (8h à 22h)
                     let occupiedCount = occupiedSlots.length;
-                    console.log(`OccupiedCount = ${occupiedCount}`)
                     if (!roomOccupancyData.some(roomData => roomData.room === room)) {
                         roomOccupancyData.push({
                             room,
