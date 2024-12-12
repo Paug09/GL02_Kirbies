@@ -1,10 +1,11 @@
-// split the time slots in 30min slots
+// Split the time slots in 30min slots
 const splitInto30MinuteSlots = (day, timeRange) => {
-    const [start, end] = timeRange.split('-');
+    const [start, end] = timeRange.split('-'); // Start and end time of the slot
     const slots = [];
-    let [startHour, startMinute] = start.split(':').map(num => parseInt(num));
+    let [startHour, startMinute] = start.split(':').map(num => parseInt(num)); 
     const [endHour, endMinute] = end.split(':').map(num => parseInt(num));
 
+    // Split the slot into 30min slots
     while (startHour < endHour || (startHour === endHour && startMinute < endMinute)) {
         const nextMinute = (startMinute + 30) % 60;
         const nextHour = startHour + Math.floor((startMinute + 30) / 60);
@@ -16,14 +17,15 @@ const splitInto30MinuteSlots = (day, timeRange) => {
     return slots;
 };
 
-// create all the possible slots
+// Create all the possible slots
 const generateAllSlots = () => {
     const days = ["L", "MA", "ME", "J", "V", "S"];
     const allSlots = [];
     days.forEach(day => {
+        // Opening hours are different on Saturday
         const openingHour = day === "S" ? 8 : 8;
         const closingHour = day === "S" ? 12 : 22;
-
+        // Split the day into 30min slots
         for (let hour = openingHour; hour < closingHour; hour++) {
             for (let minute = 0; minute < 60; minute += 30) {
                 const start = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
@@ -37,10 +39,11 @@ const generateAllSlots = () => {
     return allSlots;
 };
 
-// find the occupied slots
+// Find the occupied slots
 const getOccupiedSlots = (parsedCourse, room) => {
     const occupiedSlots = [];
     parsedCourse.forEach(course => {
+        // Check if the room is occupied
         course.timeSlots.forEach(slot => {
             if (slot.salle === room) {
                 occupiedSlots.push(...splitInto30MinuteSlots(slot.horaire.split(' ')[0], slot.horaire.split(' ')[1]));
@@ -49,8 +52,18 @@ const getOccupiedSlots = (parsedCourse, room) => {
     });
     return occupiedSlots;
 };
+// Define the days of the week
+const dayOfTheWeek = {
+    L: "Lundi",
+    MA: "Mardi",
+    ME: "Mercredi",
+    J: "Jeudi",
+    V: "Vendredi",
+    S: "Samedi",
+};
 
 module.exports = {
+    dayOfTheWeek,
     generateAllSlots,
     getOccupiedSlots,
 };

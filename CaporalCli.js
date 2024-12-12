@@ -12,10 +12,11 @@ const { getStudentSchedule, generateICSFile } = require("./GenerateICS");
 const { roles, users, checkPermission, promptUserForName } = require("./userManager.js");
 
 // Import the functions to manage the free slots for a room
-const { getOccupiedSlots, generateAllSlots } = require("./slotManager.js");
+const { dayOfTheWeek, getOccupiedSlots, generateAllSlots } = require("./slotManager.js");
 
+// Create the CLI wich will be used to run the commands
 cli.version("cru-parser-cli")
-    .version("0.06")
+    .version("0.08")
     /**
      * Command to check if a file is a valid Cru file.
      *
@@ -23,6 +24,8 @@ cli.version("cru-parser-cli")
      * @argument {string} file - The file to check with Cru parser.
      * @option {boolean} -t, --showTokenize - Log the tokenization results.
      * @option {boolean} -d, --showDebug - Log the debug information.
+     * @example
+     * $ node caporalCli.js check SujetA_data/CD/edt.cru -t -d
      */
     .command("check", "Check if <file> is a valid Cru file")
     .argument("<file>", "The file to check with Cru parser")
@@ -60,6 +63,8 @@ cli.version("cru-parser-cli")
      * Command to display the README.txt file.
      *
      * @command readme
+     * @example
+     * $ node caporalCli.js readme
      */
     .command("readme", "Display the README.txt file")
     .action(({ logger }) => {
@@ -71,12 +76,14 @@ cli.version("cru-parser-cli")
         });
     })
     /**
-     * SPEC 1 and 2 : search rooms with a given course, and give the capacity if wanted
+     * SPEC 1 ( and 2 ) : search rooms with a given course, and give the capacity if wanted
      *
      * @command findCourseRooms
      * @argument {string} file - The Cru file to search.
      * @argument {string} course - The course to search.
      * @option {boolean} -c, --capacity - Show the capacity of the room(s).
+     * @example
+     * $ node caporalCli.js findCourseRooms SujetA_data/CD/edt.cru CL02 -c
      */
     .command("findCourseRooms", "Looks for the rooms associated with a course")
     .argument("<file>", "The Cru file to search")
@@ -123,6 +130,8 @@ cli.version("cru-parser-cli")
      * @command findRoomCapacity
      * @argument {string} file - The Cru file to search.
      * @argument {string} room - The room to search.
+     * @example
+     * $ node caporalCli.js findRoomCapacity SujetA_data/CD/edt.cru S204
      */
     .command("findRoomCapacity", "Looks for the capacity of a given room")
     .argument("<file>", "The Cru file to search")
@@ -160,14 +169,21 @@ cli.version("cru-parser-cli")
             }
         });
     })
-    .command('freeSlotsForRoom', 'Check when a certain room is free during the week')
-    .argument('<file>', 'The Cru file to analyze')
-    .argument('<room>', 'The room to check for free and occupied slots')
-    .option('-o, --occupied', 'Shows the occupied slots of the room)', { validator: cli.BOOLEAN, default: false })
-    .action(({ args, options, logger }) => {
-        const fs = require('fs');
 
-        fs.readFile(args.file, 'utf8', function (err, data) {
+    /**
+     * SPEC 3 : check free slots for a given room
+     * @argument {string} file - The Cru file to analyze.
+     * @argument {string} room - The room to check for free and occupied slots.
+     * @option {boolean} -o, --occupied - Shows the occupied slots of the room.
+     * @example
+     * $ node caporalCli.js freeSlotsForRoom SujetA_data/CD/edt.cru S204 -o
+     */
+    .command("freeSlotsForRoom", "Check when a certain room is free during the week")
+    .argument("<file>", "The Cru file to analyze")
+    .argument("<room>", "The room to check for free and occupied slots")
+    .option("-o, --occupied", "Shows the occupied slots of the room)", { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
+        fs.readFile(args.file, "utf8", function (err, data) {
             if (err) {
                 return logger.warn(err);
             }
@@ -175,26 +191,27 @@ cli.version("cru-parser-cli")
             const analyzer = new CruParser();
             analyzer.parse(data);
 
+            // Get all the slots and the occupied slots
             const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, args.room);
             const allSlots = generateAllSlots();
 
-            // calculate the free slots
-            const freeSlots = allSlots.filter(slot => !occupiedSlots.includes(slot));
+            // Calculate the free slots
+            const freeSlots = allSlots.filter((slot) => !occupiedSlots.includes(slot));
 
-            // print the results
+            // Display the results
             logger.info(`Slots for room ${args.room}:`);
             if (occupiedSlots.length > 0 && options.occupied) {
                 logger.info("Occupied time slots:");
-                occupiedSlots.forEach(slot => console.log(`- ${slot}`));
+                occupiedSlots.forEach((slot) => console.log(`- ${slot}`));
             }
 
             if (freeSlots.length > 0) {
                 logger.info("Free time slots:");
-                freeSlots.forEach(slot => console.log(`- ${slot}`));
+                freeSlots.forEach((slot) => console.log(`- ${slot}`));
             } else {
                 logger.info("No free time slots found.");
             }
-        })
+        });
     })
 
     /**
@@ -203,22 +220,15 @@ cli.version("cru-parser-cli")
      * @argument {string} day - The day you want to know the available rooms (L, MA, ME, J, V, or S).
      * @argument {string} timeSlot - The time slot you want to search (e.g., 08:00-10:00).
      * @option {boolean} -o, --showOccupiedRooms - Show the occupied rooms.
+     * @example
+     * $ node caporalCli.js findAvailableRooms SujetA_data/CD/edt.cru L 08:00-10:00 -o
      */
     .command("findAvailableRooms", "Looks for the rooms available at a given time slot")
     .argument("<file>", "The Cru file to search")
     .argument("<day>", "The day you want to know the available rooms (L, MA, ME, J, V, or S)")
     .argument("<timeSlot>", "The time slot you want to search (e.g., 08:00-10:00)")
     .option("-o, --showOccupiedRooms", "Show the occupied rooms", { validator: cli.BOOLEAN, default: false })
-    .action(({ args,options,logger}) => {
-        // Convert the first letter of the day to the entire word
-        const dayOfTheWeek = {
-            L: "Lundi",
-            MA: "Mardi",
-            ME: "Mercredi",
-            J: "Jeudi",
-            V: "Vendredi",
-            S: "Samedi",
-        };
+    .action(({ args, options, logger }) => {
         // Check if the day is valid
         if (!Object.keys(dayOfTheWeek).includes(args.day)) {
             logger.error("Invalid day. Please use L, MA, ME, J, V, or S");
@@ -299,6 +309,7 @@ cli.version("cru-parser-cli")
             }
         });
     })
+
     /**
      * SPEC 5 : Generate an .ics calendar for a student
      * @argument {string} file - The Cru file to use.
@@ -307,7 +318,7 @@ cli.version("cru-parser-cli")
      * @argument {string} endDate - The end date in YYYY-MM-DD format.
      * @option {string} -o, --output - The output file.
      * @example
-     * $ cru-parser generateCalendar SujetA_data/CD/edt.cru CL02,CL07 2022-01-01 2022-01-31 -o calendar.ics
+     * $ node caporalCli.js generateCalendar SujetA_data/CD/edt.cru CL02,CL07 2022-01-01 2022-01-31 -o calendar.ics
      */
     // SPEC 5 : Generate an .ics calendar for a student
     .command("generateCalendar", "Generate an .ics calendar for a student")
@@ -345,10 +356,16 @@ cli.version("cru-parser-cli")
         });
     })
 
-    // SPEC 6 : check the data quality
+    /**
+     * SPEC 6 : Verify if there are any overlapping courses in the schedule
+     * @argument {string} file - The Cru file to check.
+     * @example
+     * $ node caporalCli.js verifySchedule SujetA_data/CD/edt.cru
+     */
     .command("verifySchedule", "Verify if there are any overlapping courses in the schedule")
     .argument("<file>", "The Cru file to check")
     .action(async ({ args, logger }) => {
+        // Check if the user has the permission to run this command
         const username = await promptUserForName();
         const hasPermission = checkPermission(username, users, roles.admin);
 
@@ -358,16 +375,8 @@ cli.version("cru-parser-cli")
         }
 
         logger.info("Access granted. Here are the parsed courses:");
-        const fs = require("fs");
-        const dayOfTheWeek = {
-            L: "Lundi",
-            MA: "Mardi",
-            ME: "Mercredi",
-            J: "Jeudi",
-            V: "Vendredi",
-            S: "Samedi",
-        };
 
+        // Read the file and parse the courses
         fs.readFile(args.file, "utf8", function (err, data) {
             if (err) {
                 return logger.warn(err);
@@ -384,11 +393,11 @@ cli.version("cru-parser-cli")
                 analyzer.ParsedCourse.forEach((course) => {
                     course.timeSlots.forEach((slot) => {
                         if (!roomSchedules[slot.salle]) {
-                            // is the room is not aleady in the list
+                            // Is the room is not aleady in the list
                             roomSchedules[slot.salle] = []; // we create a list corresponding to its name
                         }
                         roomSchedules[slot.salle].push({
-                            // in the list of the room, we add the course code, the time slot and the day when the room is occupied
+                            // In the list of the room, we add the course code, the time slot and the day when the room is occupied
                             course: course.courseCode,
                             start: slot.horaire.split(" ")[1].split("-")[0],
                             end: slot.horaire.split(" ")[1].split("-")[1],
@@ -426,7 +435,7 @@ cli.version("cru-parser-cli")
                     }
                 }
 
-                // Print the results
+                // Display the results
                 if (overlaps.length > 0) {
                     logger.warn("Overlapping courses detected:");
                     overlaps.forEach((overlap) => {
