@@ -4,7 +4,7 @@ const cli = require("@caporal/core").default;
 const { getStudentSchedule, generateICSFile } = require("./FonctionAnnexe"); // Importer les fonction
 
 cli.version("cru-parser-cli")
-    .version("0.05")
+    .version("0.06")
     // check Cru
     .command("check", "Check if <file> is a valid Cru file")
     .argument("<file>", "The file to check with Cru parser")
@@ -29,7 +29,7 @@ cli.version("cru-parser-cli")
                 logger.info("The .cru file is a valid cru file".green);
             } else {
                 logger.info("The .cru file contains error".red);
-                //Donne le nombre d'erreurs
+                // display how many errors there are
                 logger.info("Error count : %d", analyzer.errorCount);
             }
             analyzer.ParsedCourse.forEach((course) => {
@@ -42,7 +42,7 @@ cli.version("cru-parser-cli")
         });
     })
 
-    //readme
+    // readme
     .command("readme", "Display the README.txt file")
     .action(({ logger }) => {
         fs.readFile("./README.txt", "utf8", function (err, data) {
@@ -53,7 +53,181 @@ cli.version("cru-parser-cli")
         });
     })
 
-    //Spec 5 : Generate an .ics calendar for a student
+    // SPEC 1 and 2 : search rooms with a given course, and give the capacity if wanted
+    .command("findCourseRooms", "Looks for the rooms associated with a course")
+    .argument("<file>", "The Cru file to search")
+    .argument("<course>", "The course you want to search")
+    .option("-c, --capacity", "Shows capacity of the room(s)", {
+        validator: cli.BOOLEAN,
+        default: false,
+    })
+    .action(({ args, options, logger }) => {
+        fs.readFile(args.file, "utf8", function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            if (analyzer.errorCount === 0) {
+                // find the given course in the file
+                let courseToSearch = analyzer.ParsedCourse.find(
+                    (course) => course.courseCode === args.course
+                );
+
+                // if the course is found
+                if (courseToSearch) {
+                    console.log(`Rooms that welcome the course ${courseToSearch.courseCode}:`);
+
+                    courseToSearch.timeSlots.forEach((ts) => {
+                        console.log(`- ${ts.salle}`);
+
+                        // if the user wants to know the capacity of the room
+                        if (options.capacity) {
+                            let capacity = parseInt(ts.capacite);
+                            console.log(`  Capacity: ${capacity}`);
+                        }
+                    });
+                } else {
+                    logger.warn("No rooms found for the given course.");
+                }
+            } else {
+                logger.error("The .cru file contains parsing errors.");
+            }
+        });
+    })
+
+    // SPEC 2 : search capacity of a given room
+    .command("findRoomCapacity", "Looks for the capacity of a given room")
+    .argument("<file>", "The Cru file to search")
+    .argument("<room>", "The room you want to search")
+    .action(({ args, logger }) => {
+        fs.readFile(args.file, "utf8", function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            if (analyzer.errorCount === 0) {
+                let found = false
+                let capacity = 0
+
+                // search for the room in the file
+                analyzer.ParsedCourse.forEach((course) => {
+                    course.timeSlots.forEach((ts) => {
+
+                        // if the room was found
+                        if (ts.salle === args.room) {
+                            found = true
+                            capacity = parseInt(ts.capacite);
+                        }
+                    });
+                });
+                if (found === true) {
+                    console.log(`Capacity of the room ${args.room} : ${capacity}`);
+                }
+                else {
+                    console.error(`The room ${args.room} was not found in the given file.`)
+                }
+            } else {
+                logger.error("The .cru file contains parsing errors.");
+            }
+        });
+    })
+
+    // SPEC 4 : search available rooms with a given time slot
+    .command("findAvailableRooms", "Looks for the rooms available at a given time slot")
+    .argument("<file>", "The Cru file to search")
+    .argument("<day>", "The day you want to know the available rooms (L, MA, ME, J, V, or S)")
+    .argument("<timeSlot>", "The time slot you want to search (e.g., 08:00-10:00)")
+    .action(({ args, logger }) => {
+
+        // convert the first letter of the day to the entire word
+        const dayOfTheWeek = {
+            L: "Lundi",
+            MA: "Mardi",
+            ME: "Mercredi",
+            J: "Jeudi",
+            V: "Vendredi",
+            S: "Samedi",
+        };
+
+        // we just want the start and end hours, we're not interested in the minutes.
+        let beginningTimeSlot = args.timeSlot.split("-")[0]; // we divide the argument "timeSlot" and only take the part before the "-", which is the beginning of the time slot
+        let beginningToCompare = parseInt(beginningTimeSlot.split(":")[0]); // we only take what comes before the ":", which is the hour
+        let endTimeSlot = args.timeSlot.split("-")[1]; // we divide the argument "timeSlot" and only take the part after the "-", which is the end of the time slot
+        let endToCompare = parseInt(endTimeSlot.split(":")[0]); // we only take what comes before the ":", which is the hour
+
+        fs.readFile(args.file, "utf8", function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            if (analyzer.errorCount === 0) {
+                // find all the different rooms
+                function extractRooms(data) {
+                    const roomPattern = /S=([A-Za-z0-9]+)/g;
+                    const rooms = [];
+                    let match;
+
+                    while ((match = roomPattern.exec(data)) !== null) {
+                        rooms.push(match[1]);
+                    }
+                    return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
+                }
+
+                const allRooms = extractRooms(data);
+
+                // find all the occupied rooms
+                let occupiedRooms = [];
+                analyzer.ParsedCourse.forEach((course) => {
+                    course.timeSlots.forEach((slot) => {
+                        // extract only the hour, not the minutes of the time slots of the file, like we did for the argument "timeSlot"
+                        let hours = slot.horaire.split(" ")[1];
+                        let beginningSlotTime = hours.split("-")[0];
+                        let beginningSlotHour = parseInt(beginningSlotTime.split(":")[0]);
+                        let endSlotTime = hours.split("-")[1];
+                        let endSlotHour = parseInt(endSlotTime.split(":")[0]);
+
+                        // extract only the day of the time slots of the file
+                        let slotDay = slot.horaire.split(" ")[0];
+
+                        let isOverlapping =
+                            (beginningSlotHour >= beginningToCompare && beginningSlotHour < endToCompare) || // is the beginning of the time slot in the interval
+                            (endSlotHour > beginningToCompare && endSlotHour <= endToCompare) || // is the end of the time slot in the interval
+                            (beginningSlotHour <= beginningToCompare && endSlotHour >= endToCompare); // does the time slot covers the entire interval
+
+                        if (slotDay === args.day && isOverlapping) {
+                            //if we want to know wich rooms are unavailable : 
+                            //console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
+                            occupiedRooms.push(slot.salle);
+                        }
+                    });
+                });
+
+                // calculate the available rooms
+                let availableRooms = allRooms.filter((room) => !occupiedRooms.includes(room));
+
+                // display the result
+                if (availableRooms.length > 0) {
+                    logger.info(`Rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot} :`);
+                    availableRooms.forEach((room) => console.log(`- ${room}`));
+                } else {
+                    logger.warn(`No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot}.`);
+                }
+            } else {
+                logger.error("The .cru file contains errors.".red);
+            }
+        });
+    })
+
+    // SPEC 5 : Generate an .ics calendar for a student
     .command("generateCalendar", "Generate an .ics calendar for a student")
     .argument("<file>", "The Cru file to use")
     .argument("<selectedCourses>", 'Comma-separated list of course codes (e.g., "CL02,CL07")')
@@ -89,145 +263,7 @@ cli.version("cru-parser-cli")
         });
     })
 
-    // search rooms with a given course
-    .command("courseRoom", "Looks for the rooms associated with a course")
-    .argument("<file>", "The Cru file to search")
-    .argument("<course>", "The course you want to search")
-    .option("-c, --capacity", "Shows capacity of the room(s)", {
-        validator: cli.BOOLEAN,
-        default: false,
-    })
-    .action(({ args, options, logger }) => {
-        fs.readFile(args.file, "utf8", function (err, data) {
-            if (err) {
-                return logger.warn(err);
-            }
-
-            const analyzer = new CruParser();
-            analyzer.parse(data);
-
-            //if (analyzer.errorCount === 0) {
-            // find the given course in the database
-            let courseToSearch = analyzer.ParsedCourse.find(
-                (course) => course.courseCode === args.course
-            );
-
-            // if the course is found
-            if (courseToSearch) {
-                console.log(`Rooms that welcome the course ${courseToSearch.courseCode}:`);
-
-                courseToSearch.timeSlots.forEach((ts) => {
-                    console.log(`- ${ts.salle}`);
-
-                    if (options.capacity) {
-                        let capacity = parseInt(ts.capacite);
-                        console.log(`  Capacity: ${capacity}`);
-                    }
-                });
-            } else {
-                logger.warn("No rooms found for the given course.");
-            }
-            //} else {
-            //	logger.warn("The .cru file contains parsing errors.");
-            //}
-        });
-    })
-
-    .command("roomsForSlot", "Looks for the rooms available at a given time slot")
-    .argument("<file>", "The Cru file to search")
-    .argument("<day>", "The day you want to know the available rooms (L, MA, ME, J, V, or S)")
-    .argument("<timeSlot>", "The time slot you want to search (e.g., 08:00-10:00)")
-    .action(({ args, logger }) => {
-        const dayOfTheWeek = {
-            L: "Lundi",
-            MA: "Mardi",
-            ME: "Mercredi",
-            J: "Jeudi",
-            V: "Vendredi",
-            S: "Samedi",
-        };
-
-        let beginningTimeSlot = args.timeSlot.split("-")[0];
-        let beginningToCompare = parseInt(beginningTimeSlot.split(":")[0]);
-        let endTimeSlot = args.timeSlot.split("-")[1];
-        let endToCompare = parseInt(endTimeSlot.split(":")[0]);
-
-        fs.readFile(args.file, "utf8", function (err, data) {
-            if (err) {
-                return logger.warn(err);
-            }
-
-            const analyzer = new CruParser();
-            analyzer.parse(data);
-
-            if (analyzer.errorCount === 0) {
-                // Find all the different rooms
-                function extractRooms(data) {
-                    const roomPattern = /S=([A-Za-z0-9]+)/g;
-                    const rooms = [];
-                    let match;
-
-                    while ((match = roomPattern.exec(data)) !== null) {
-                        rooms.push(match[1]);
-                    }
-                    return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
-                }
-
-                const allRooms = extractRooms(data);
-
-                // Find all the occupied rooms
-                let occupiedRooms = [];
-                analyzer.ParsedCourse.forEach((course) => {
-                    course.timeSlots.forEach((slot) => {
-                        // Extract only the hour, not the minutes of the time slots of the data set
-                        let hours = slot.horaire.split(" ")[1];
-                        let beginningSlotTime = hours.split("-")[0];
-                        let beginningSlotHour = parseInt(beginningSlotTime.split(":")[0]);
-
-                        let endSlotTime = hours.split("-")[1];
-                        let endSlotHour = parseInt(endSlotTime.split(":")[0]);
-
-                        // Extract only the day of the time slots of the data set
-                        let slotDay = slot.horaire.split(" ")[0];
-
-                        let isOverlapping =
-                            (beginningSlotHour >= beginningToCompare &&
-                                beginningSlotHour < endToCompare) || // Début dans l'intervalle
-                            (endSlotHour > beginningToCompare && endSlotHour <= endToCompare) || // Fin dans l'intervalle
-                            (beginningSlotHour <= beginningToCompare &&
-                                endSlotHour >= endToCompare); // Couvre tout l'intervalle
-
-                        if (slotDay === args.day && isOverlapping) {
-                            //console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
-                            occupiedRooms.push(slot.salle);
-                        }
-                    });
-                });
-
-                // Calculate the available rooms
-                let availableRooms = allRooms.filter((room) => !occupiedRooms.includes(room));
-
-                // Print the result
-                if (availableRooms.length > 0) {
-                    logger.info(
-                        `Rooms available on ${dayOfTheWeek[args.day]} during the time slot ${
-                            args.timeSlot
-                        } :`
-                    );
-                    availableRooms.forEach((room) => console.log(`- ${room}`));
-                } else {
-                    logger.warn(
-                        `No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${
-                            args.timeSlot
-                        }.`
-                    );
-                }
-            } else {
-                logger.error("The .cru file contains errors.".red);
-            }
-        });
-    })
-
+    // SPEC 6 : check the data quality
     .command("verifySchedule", "Verify if there are any overlapping courses in the schedule")
     .argument("<file>", "The Cru file to check")
     .action(({ args, logger }) => {
