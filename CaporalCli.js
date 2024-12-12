@@ -11,6 +11,9 @@ const { getStudentSchedule, generateICSFile } = require("./GenerateICS");
 // Import the functions to manage users and permissions
 const { roles, users, checkPermission, promptUserForName } = require("./userManager.js");
 
+// Import the functions to manage the free slots for a room
+const { getOccupiedSlots, generateAllSlots } = require("./slotManager.js");
+
 cli.version("cru-parser-cli")
     .version("0.06")
     /**
@@ -156,6 +159,42 @@ cli.version("cru-parser-cli")
                 logger.error("The .cru file contains parsing errors.");
             }
         });
+    })
+    .command('freeSlotsForRoom', 'Check when a certain room is free during the week')
+    .argument('<file>', 'The Cru file to analyze')
+    .argument('<room>', 'The room to check for free and occupied slots')
+    .option('-o, --occupied', 'Shows the occupied slots of the room)', { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
+        const fs = require('fs');
+
+        fs.readFile(args.file, 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, args.room);
+            const allSlots = generateAllSlots();
+
+            // calculate the free slots
+            const freeSlots = allSlots.filter(slot => !occupiedSlots.includes(slot));
+
+            // print the results
+            logger.info(`Slots for room ${args.room}:`);
+            if (occupiedSlots.length > 0 && options.occupied) {
+                logger.info("Occupied time slots:");
+                occupiedSlots.forEach(slot => console.log(`- ${slot}`));
+            }
+
+            if (freeSlots.length > 0) {
+                logger.info("Free time slots:");
+                freeSlots.forEach(slot => console.log(`- ${slot}`));
+            } else {
+                logger.info("No free time slots found.");
+            }
+        })
     })
 
     /**
