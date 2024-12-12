@@ -8,145 +8,145 @@ const vegalite = require('vega-lite');
 const cli = require("@caporal/core").default;
 
 cli
-	.version('cru-parser-cli')
-	.version('0.05')
-	// check Cru
-	.command('check', 'Check if <file> is a valid Cru file')
-	.argument('<file>', 'The file to check with Cru parser')
-	.option('-s, --showSymbols', 'log the analyzed symbol at each step', { validator: cli.BOOLEAN, default: false })
-	.option('-t, --showTokenize', 'log the tokenization results', { validator: cli.BOOLEAN, default: false })
-	.option('-d, --showDebug', 'log the debug information', { validator: cli.BOOLEAN, default: false })
-	.action(({ args, options, logger }) => {
+    .version('cru-parser-cli')
+    .version('0.08')
+    // check Cru
+    .command('check', 'Check if <file> is a valid Cru file')
+    .argument('<file>', 'The file to check with Cru parser')
+    .option('-s, --showSymbols', 'log the analyzed symbol at each step', { validator: cli.BOOLEAN, default: false })
+    .option('-t, --showTokenize', 'log the tokenization results', { validator: cli.BOOLEAN, default: false })
+    .option('-d, --showDebug', 'log the debug information', { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
 
-		fs.readFile(args.file, 'utf8', function (err, data) {
-			if (err) {
-				return logger.warn(err);
-			}
+        fs.readFile(args.file, 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
 
-			var analyzer = new CruParser(options.showTokenize, options.showSymbols, options.showDebug);
-			analyzer.parse(data);
+            var analyzer = new CruParser(options.showTokenize, options.showSymbols, options.showDebug);
+            analyzer.parse(data);
 
-			if (analyzer.errorCount === 0) {
-				logger.info("The .cru file is a valid cru file".green);
-			} else {
-				logger.info("The .cru file contains error".red);
-				//Donne le nombre d'erreurs
-				logger.info("Error count : %d", analyzer.errorCount);
-			}
-			analyzer.ParsedCourse.forEach(course => {
-				console.log(`Course Code: ${course.courseCode}`);
-				course.timeSlots.forEach((ts, index) => {
-					console.log(`- Time Slot ${index + 1}: ${ts.toString()}`);
-				});
-			});
-			logger.debug(analyzer.parsedCourse);
+            if (analyzer.errorCount === 0) {
+                logger.info("The .cru file is a valid cru file".green);
+            } else {
+                logger.info("The .cru file contains error".red);
+                //Donne le nombre d'erreurs
+                logger.info("Error count : %d", analyzer.errorCount);
+            }
+            analyzer.ParsedCourse.forEach(course => {
+                console.log(`Course Code: ${course.courseCode}`);
+                course.timeSlots.forEach((ts, index) => {
+                    console.log(`- Time Slot ${index + 1}: ${ts.toString()}`);
+                });
+            });
+            logger.debug(analyzer.parsedCourse);
 
-		});
+        });
 
-	})
+    })
 
-	//readme
-	.command('readme', 'Display the README.txt file')
-	.action(({ logger }) => {
-		fs.readFile("./README.txt", 'utf8', function (err, data) {
-			if (err) {
-				return logger.warn(err);
-			}
-			logger.info(data);
-		});
-	})
+    //readme
+    .command('readme', 'Display the README.txt file')
+    .action(({ logger }) => {
+        fs.readFile("./README.txt", 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+            logger.info(data);
+        });
+    })
 
-	// search rooms with a given course
-	.command('courseRoom', 'Looks for the rooms associated with a course')
-	.argument('<file>', 'The Cru file to search')
-	.argument('<course>', 'The course you want to search')
-	.option('-c, --capacity', 'Shows capacity of the room(s)', { validator: cli.BOOLEAN, default: false })
-	.action(({ args, options, logger }) => {
-		fs.readFile(args.file, 'utf8', function (err, data) {
-			if (err) {
-				return logger.warn(err);
-			}
+    // search rooms with a given course
+    .command('courseRoom', 'Looks for the rooms associated with a course')
+    .argument('<file>', 'The Cru file to search')
+    .argument('<course>', 'The course you want to search')
+    .option('-c, --capacity', 'Shows capacity of the room(s)', { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
+        fs.readFile(args.file, 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
 
-			const analyzer = new CruParser();
-			analyzer.parse(data);
+            const analyzer = new CruParser();
+            analyzer.parse(data);
 
-			//if (analyzer.errorCount === 0) {
-			// find the given course in the database
-			let courseToSearch = analyzer.ParsedCourse.find(course => course.courseCode === args.course);
+            //if (analyzer.errorCount === 0) {
+            // find the given course in the database
+            let courseToSearch = analyzer.ParsedCourse.find(course => course.courseCode === args.course);
 
-			// if the course is found
-			if (courseToSearch) {
-				console.log(`Rooms that welcome the course ${courseToSearch.courseCode}:`);
+            // if the course is found
+            if (courseToSearch) {
+                console.log(`Rooms that welcome the course ${courseToSearch.courseCode}:`);
 
-				courseToSearch.timeSlots.forEach((ts) => {
-					console.log(`- ${ts.salle}`);
+                courseToSearch.timeSlots.forEach((ts) => {
+                    console.log(`- ${ts.salle}`);
 
-					if (options.capacity) {
-						let capacity = parseInt(ts.capacite);
-						console.log(`  Capacity: ${capacity}`);
-					}
-				});
-			} else {
-				logger.warn("No rooms found for the given course.");
-			}
-			//} else {
-			//	logger.warn("The .cru file contains parsing errors.");
-			//}
-		});
-	})
+                    if (options.capacity) {
+                        let capacity = parseInt(ts.capacite);
+                        console.log(`  Capacity: ${capacity}`);
+                    }
+                });
+            } else {
+                logger.warn("No rooms found for the given course.");
+            }
+            //} else {
+            //	logger.warn("The .cru file contains parsing errors.");
+            //}
+        });
+    })
 
-	.command('roomsForSlot', 'Looks for the rooms available at a given time slot')
-	.argument('<file>', 'The Cru file to search')
-	.argument('<day>', 'The day you want to know the available rooms (L, MA, ME, J, V, or S)')
-	.argument('<timeSlot>', 'The time slot you want to search (e.g., 08:00-10:00)')
-	.action(({ args, logger }) => {
-		const dayOfTheWeek = { "L": "Lundi", "MA": "Mardi", "ME": "Mercredi", "J": "Jeudi", "V": "Vendredi", "S": "Samedi" };
+    .command('roomsForSlot', 'Looks for the rooms available at a given time slot')
+    .argument('<file>', 'The Cru file to search')
+    .argument('<day>', 'The day you want to know the available rooms (L, MA, ME, J, V, or S)')
+    .argument('<timeSlot>', 'The time slot you want to search (e.g., 08:00-10:00)')
+    .action(({ args, logger }) => {
+        const dayOfTheWeek = { "L": "Lundi", "MA": "Mardi", "ME": "Mercredi", "J": "Jeudi", "V": "Vendredi", "S": "Samedi" };
 
-		let beginningTimeSlot = args.timeSlot.split('-')[0]
-		let beginningToCompare = parseInt(beginningTimeSlot.split(':')[0])
-		let endTimeSlot = args.timeSlot.split('-')[1]
-		let endToCompare = parseInt(endTimeSlot.split(':')[0])
+        let beginningTimeSlot = args.timeSlot.split('-')[0]
+        let beginningToCompare = parseInt(beginningTimeSlot.split(':')[0])
+        let endTimeSlot = args.timeSlot.split('-')[1]
+        let endToCompare = parseInt(endTimeSlot.split(':')[0])
 
-		fs.readFile(args.file, 'utf8', function (err, data) {
-			if (err) {
-				return logger.warn(err);
-			}
+        fs.readFile(args.file, 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
 
-			const analyzer = new CruParser();
-			analyzer.parse(data);
+            const analyzer = new CruParser();
+            analyzer.parse(data);
 
-			//if (analyzer.errorCount === 0) {
-			// Find all the different rooms
-			function extractRooms(data) {
-				const roomPattern = /S=([A-Za-z0-9]+)/g;
-				const rooms = [];
-				let match;
+            //if (analyzer.errorCount === 0) {
+            // Find all the different rooms
+            function extractRooms(data) {
+                const roomPattern = /S=([A-Za-z0-9]+)/g;
+                const rooms = [];
+                let match;
 
-				while ((match = roomPattern.exec(data)) !== null) {
-					rooms.push(match[1]);
-				}
-				return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
-			}
+                while ((match = roomPattern.exec(data)) !== null) {
+                    rooms.push(match[1]);
+                }
+                return rooms.filter((value, index, self) => self.indexOf(value) === index); // Delete duplicated entries
+            }
 
-			const allRooms = extractRooms(data);
+            const allRooms = extractRooms(data);
 
-			// Find all the occupied rooms
-			let occupiedRooms = [];
-			analyzer.ParsedCourse.forEach(course => {
-				course.timeSlots.forEach(slot => {
+            // Find all the occupied rooms
+            let occupiedRooms = [];
+            analyzer.ParsedCourse.forEach(course => {
+                course.timeSlots.forEach(slot => {
 
-					// Extract only the hour, not the minutes of the time slots of the data set
-					let hours = slot.horaire.split(' ')[1]
-					let beginningSlotTime = hours.split('-')[0]
-					let beginningSlotHour = parseInt(beginningSlotTime.split(':')[0])
+                    // Extract only the hour, not the minutes of the time slots of the data set
+                    let hours = slot.horaire.split(' ')[1]
+                    let beginningSlotTime = hours.split('-')[0]
+                    let beginningSlotHour = parseInt(beginningSlotTime.split(':')[0])
 
-					let endSlotTime = hours.split('-')[1]
-					let endSlotHour = parseInt(endSlotTime.split(':')[0])
+                    let endSlotTime = hours.split('-')[1]
+                    let endSlotHour = parseInt(endSlotTime.split(':')[0])
 
-					// Extract only the day of the time slots of the data set
-					let slotDay = slot.horaire.split(' ')[0]
+                    // Extract only the day of the time slots of the data set
+                    let slotDay = slot.horaire.split(' ')[0]
 
-					let isOverlapping = 
+                    let isOverlapping =
                         (beginningSlotHour >= beginningToCompare && beginningSlotHour < endToCompare) ||  // Début dans l'intervalle
                         (endSlotHour > beginningToCompare && endSlotHour <= endToCompare) ||             // Fin dans l'intervalle
                         (beginningSlotHour <= beginningToCompare && endSlotHour >= endToCompare);        // Couvre tout l'intervalle
@@ -155,104 +155,193 @@ cli
                         //console.log(`Room ocupied : ${slot.salle} (${slot.horaire})`);
                         occupiedRooms.push(slot.salle);
                     }
-				});
-			});
+                });
+            });
 
-			// Calculate the available rooms
-			let availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
+            // Calculate the available rooms
+            let availableRooms = allRooms.filter(room => !occupiedRooms.includes(room));
 
-			// Print the result
-			if (availableRooms.length > 0) {
-				logger.info(`Rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot} :`);
-				availableRooms.forEach(room => console.log(`- ${room}`));
-			} else {
-				logger.warn(`No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot}.`);
-			}
-			//} else {
-			//	logger.info("The .cru file contains errors.".red);
-			//}
-		});
-	})
+            // Print the result
+            if (availableRooms.length > 0) {
+                logger.info(`Rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot} :`);
+                availableRooms.forEach(room => console.log(`- ${room}`));
+            } else {
+                logger.warn(`No rooms available on ${dayOfTheWeek[args.day]} during the time slot ${args.timeSlot}.`);
+            }
+            //} else {
+            //	logger.info("The .cru file contains errors.".red);
+            //}
+        });
+    })
 
-	.command('verifySchedule', 'Verify if there are any overlapping courses in the schedule')
-	.argument('<file>', 'The Cru file to check')
-	.action(({ args, logger }) => {
-		const fs = require('fs');
-		const dayOfTheWeek = { "L": "Lundi", "MA": "Mardi", "ME": "Mercredi", "J": "Jeudi", "V": "Vendredi", "S": "Samedi" };
+    .command('verifySchedule', 'Verify if there are any overlapping courses in the schedule')
+    .argument('<file>', 'The Cru file to check')
+    .action(({ args, logger }) => {
+        const fs = require('fs');
+        const dayOfTheWeek = { "L": "Lundi", "MA": "Mardi", "ME": "Mercredi", "J": "Jeudi", "V": "Vendredi", "S": "Samedi" };
 
-		fs.readFile(args.file, 'utf8', function (err, data) {
-			if (err) {
-				return logger.warn(err);
-			}
+        fs.readFile(args.file, 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
 
-			const analyzer = new CruParser();
-			analyzer.parse(data);
+            const analyzer = new CruParser();
+            analyzer.parse(data);
 
-			//if (analyzer.errorCount === 0) {
-			let overlaps = []; // List to stock the overlapping courses
+            //if (analyzer.errorCount === 0) {
+            let overlaps = []; // List to stock the overlapping courses
 
-			// Group the time slots by room
-			let roomSchedules = {};
-			analyzer.ParsedCourse.forEach(course => {
-				course.timeSlots.forEach(slot => {
-					if (!roomSchedules[slot.salle]) { // is the room is not aleady in the list
-						roomSchedules[slot.salle] = []; // we create a list corresponding to its name
-					}
-					roomSchedules[slot.salle].push({
-						// in the list of the room, we add the course code, the time slot and the day when the room is occupied
-						course: course.courseCode,
-						start: slot.horaire.split(' ')[1].split('-')[0],
-						end: slot.horaire.split(' ')[1].split('-')[1],
-						day: slot.horaire.split(' ')[0]
-					});
-				});
-			});
+            // Group the time slots by room
+            let roomSchedules = {};
+            analyzer.ParsedCourse.forEach(course => {
+                course.timeSlots.forEach(slot => {
+                    if (!roomSchedules[slot.salle]) { // is the room is not aleady in the list
+                        roomSchedules[slot.salle] = []; // we create a list corresponding to its name
+                    }
+                    roomSchedules[slot.salle].push({
+                        // in the list of the room, we add the course code, the time slot and the day when the room is occupied
+                        course: course.courseCode,
+                        start: slot.horaire.split(' ')[1].split('-')[0],
+                        end: slot.horaire.split(' ')[1].split('-')[1],
+                        day: slot.horaire.split(' ')[0]
+                    });
+                });
+            });
 
-			// Verify the overlapping for each rooms
-			for (let room in roomSchedules) {
-				let schedule = roomSchedules[room];
+            // Verify the overlapping for each rooms
+            for (let room in roomSchedules) {
+                let schedule = roomSchedules[room];
 
-				// Sort by day and start time
-				schedule.sort((a, b) => {
-					if (a.day !== b.day) {
-						return a.day.localeCompare(b.day);
-					}
-					return a.start.localeCompare(b.start);
-				});
+                // Sort by day and start time
+                schedule.sort((a, b) => {
+                    if (a.day !== b.day) {
+                        return a.day.localeCompare(b.day);
+                    }
+                    return a.start.localeCompare(b.start);
+                });
 
-				// Compare slots to detect overlaps
-				for (let i = 0; i < schedule.length - 1; i++) {
-					let current = schedule[i];
-					let next = schedule[i + 1];
+                // Compare slots to detect overlaps
+                for (let i = 0; i < schedule.length - 1; i++) {
+                    let current = schedule[i];
+                    let next = schedule[i + 1];
 
-					// Verify if the time slots are overlapping on the same day
-					if (current.day === next.day && current.end > next.start) {
-						overlaps.push({
-							room,
-							courses: [current.course, next.course],
-							day: current.day,
-							times: [`${current.start}-${current.end}`, `${next.start}-${next.end}`]
-						});
-					}
-				}
-			}
+                    // Verify if the time slots are overlapping on the same day
+                    if (current.day === next.day && current.end > next.start) {
+                        overlaps.push({
+                            room,
+                            courses: [current.course, next.course],
+                            day: current.day,
+                            times: [`${current.start}-${current.end}`, `${next.start}-${next.end}`]
+                        });
+                    }
+                }
+            }
 
-			// Print the results
-			if (overlaps.length > 0) {
-				logger.warn("Overlapping courses detected:");
-				overlaps.forEach(overlap => {
-					logger.info(`Room: ${overlap.room}`);
-					console.log(`Day: ${dayOfTheWeek[overlap.day]}`);
-					console.log(`Courses: ${overlap.courses.join(', ')}`);
-					console.log(`Time: ${overlap.times[0]}`);
-				});
-			} else {
-				logger.info("No overlapping courses detected. The schedule is valid.");
-			}
-			//} else {
-			//	logger.error("The .cru file contains errors. Unable to verify schedule.");
-			//}
-		});
-	});
+            // Print the results
+            if (overlaps.length > 0) {
+                logger.warn("Overlapping courses detected:");
+                overlaps.forEach(overlap => {
+                    logger.info(`Room: ${overlap.room}`);
+                    console.log(`Day: ${dayOfTheWeek[overlap.day]}`);
+                    console.log(`Courses: ${overlap.courses.join(', ')}`);
+                    console.log(`Time: ${overlap.times[0]}`);
+                });
+            } else {
+                logger.info("No overlapping courses detected. The schedule is valid.");
+            }
+            //} else {
+            //	logger.error("The .cru file contains errors. Unable to verify schedule.");
+            //}
+        });
+    })
+
+    .command('freeSlotsForRoom', 'Check when a certain room is free during the week')
+    .argument('<file>', 'The Cru file to analyze')
+    .argument('<room>', 'The room to check for free and occupied slots')
+    .option('-o, --occupied', 'Shows the occupied slots of the room)', { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
+        const fs = require('fs');
+
+        // split the time slots in 30min slots
+        const splitInto30MinuteSlots = (day, timeRange) => {
+            const [start, end] = timeRange.split('-');
+            const slots = [];
+            let [startHour, startMinute] = start.split(':').map(num => parseInt(num));
+            const [endHour, endMinute] = end.split(':').map(num => parseInt(num));
+
+            while (startHour < endHour || (startHour === endHour && startMinute < endMinute)) {
+                const nextMinute = (startMinute + 30) % 60;
+                const nextHour = startHour + Math.floor((startMinute + 30) / 60);
+                slots.push(`${day} ${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}-${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`);
+                startHour = nextHour;
+                startMinute = nextMinute;
+            }
+
+            return slots;
+        };
+
+        // find the occupied slots
+        const getOccupiedSlots = (parsedCourse, room) => {
+            const occupiedSlots = [];
+            parsedCourse.forEach(course => {
+                course.timeSlots.forEach(slot => {
+                    if (slot.salle === room) {
+                        occupiedSlots.push(...splitInto30MinuteSlots(slot.horaire.split(' ')[0], slot.horaire.split(' ')[1]));
+                    }
+                });
+            });
+            return occupiedSlots;
+        };
+
+        // create all the possible slots
+        const generateAllSlots = () => {
+            const days = ["L", "MA", "ME", "J", "V", "S"];
+            const allSlots = [];
+            days.forEach(day => {
+                const openingHour = day === "S" ? 8 : 8;
+                const closingHour = day === "S" ? 12 : 22;
+
+                for (let hour = openingHour; hour < closingHour; hour++) {
+                    for (let minute = 0; minute < 60; minute += 30) {
+                        const start = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+                        const endMinute = (minute + 30) % 60;
+                        const endHour = hour + Math.floor((minute + 30) / 60);
+                        const end = `${endHour.toString().padStart(2, "0")}:${endMinute.toString().padStart(2, "0")}`;
+                        allSlots.push(`${day} ${start}-${end}`);
+                    }
+                }
+            });
+            return allSlots;
+        };
+
+        fs.readFile(args.file, 'utf8', function (err, data) {
+            if (err) {
+                return logger.warn(err);
+            }
+
+            const analyzer = new CruParser();
+            analyzer.parse(data);
+
+            const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, args.room);
+            const allSlots = generateAllSlots();
+
+            // calculate the free slots
+            const freeSlots = allSlots.filter(slot => !occupiedSlots.includes(slot));
+
+            // print the results
+            logger.info(`Slots for room ${args.room}:`);
+            if (occupiedSlots.length > 0 && options.occupied) {
+                logger.info("Occupied time slots:");
+                occupiedSlots.forEach(slot => console.log(`- ${slot}`));
+            }
+
+            if (freeSlots.length > 0) {
+                logger.info("Free time slots:");
+                freeSlots.forEach(slot => console.log(`- ${slot}`));
+            } else {
+                logger.info("No free time slots found.");
+            }
+        });
+    });
 
 cli.run(process.argv.slice(2));
