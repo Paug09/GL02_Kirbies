@@ -153,12 +153,12 @@ cli
 
 				for (let day of daysOfWeek) {
 					for (let hour = startHour; hour < endHour; hour++) {
-						const startTime = `${hour.toString().padStart(2, "0")}:00`;
-						const endTime = `${hour.toString().padStart(2, "0")}:30`;
+						const startTime = `${hour.toString()}:00`;
+						const endTime = `${hour.toString()}:30`;
 						schedules.push(`${day} ${startTime}-${endTime}`);
 
-						const startTime2 = `${hour.toString().padStart(2, "0")}:30`;
-						const endTime2 = `${(hour + 1).toString().padStart(2, "0")}:00`;
+						const startTime2 = `${hour.toString()}:30`;
+						const endTime2 = `${(hour + 1).toString()}:00`;
 						schedules.push(`${day} ${startTime2}-${endTime2}`);
 					}
 				}
@@ -181,21 +181,21 @@ cli
 
 				for (let hour = startHour; hour < endHour; hour++) {
 					if (startMinute === "00" || hour != startHour) {
-						const startTime = `${hour.toString().padStart(2)}:00`;
-						const endTime = `${hour.toString().padStart(2)}:30`;
+						const startTime = `${hour.toString()}:00`;
+						const endTime = `${hour.toString()}:30`;
 						schedules.push(`${dayOfWeek} ${startTime}-${endTime}`);
 						console.log(schedules + "---------------------------schedules start min 00 ou =! start hour--------------------------");
 					}
 
-					const startTime = `${hour.toString().padStart(2)}:30`;
-					const endTime = `${(parseInt(hour) + 1).toString().padStart(2)}:00`;
+					const startTime = `${hour.toString()}:30`;
+					const endTime = `${(parseInt(hour) + 1).toString()}:00`;
 					schedules.push(`${dayOfWeek} ${startTime}-${endTime}`);
 					console.log(schedules + "---------------------------schedules en général--------------------------");
 
 
 					if ((hour == (parseInt(endHour) - 1)) && endMinute === "30") {
-						const startTime = `${endHour.toString().padStart(2)}:00`;
-						const endTime = `${(endHour).toString().padStart(2)}:30`;
+						const startTime = `${endHour.toString()}:00`;
+						const endTime = `${(endHour).toString()}:30`;
 						schedules.push(`${dayOfWeek} ${startTime}-${endTime}`);
 						console.log(schedules + "---------------------------schedules si finit par 30--------------------------");
 					}
@@ -311,12 +311,12 @@ cli
 
 				for (let day of daysOfWeek) {
 					for (let hour = startHour; hour < endHour; hour++) {
-						const startTime = `${hour.toString().padStart(2, "0")}:00`;
-						const endTime = `${hour.toString().padStart(2, "0")}:30`;
+						const startTime = `${hour.toString()}:00`;
+						const endTime = `${hour.toString()}:30`;
 						schedules.push(`${day} ${startTime}-${endTime}`);
 
-						const startTime2 = `${hour.toString().padStart(2, "0")}:30`;
-						const endTime2 = `${(hour + 1).toString().padStart(2, "0")}:00`;
+						const startTime2 = `${hour.toString()}:30`;
+						const endTime2 = `${(hour + 1).toString()}:00`;
 						schedules.push(`${day} ${startTime2}-${endTime2}`);
 					}
 				}
@@ -401,12 +401,12 @@ cli
 
 				for (let day of daysOfWeek) {
 					for (let hour = startHour; hour < endHour; hour++) {
-						const startTime = `${hour.toString().padStart(2, "0")}:00`;
-						const endTime = `${hour.toString().padStart(2, "0")}:30`;
+						const startTime = `${hour.toString()}:00`;
+						const endTime = `${hour.toString()}:30`;
 						schedules.push(`${day} ${startTime}-${endTime}`);
 
-						const startTime2 = `${hour.toString().padStart(2, "0")}:30`;
-						const endTime2 = `${(hour + 1).toString().padStart(2, "0")}:00`;
+						const startTime2 = `${hour.toString()}:30`;
+						const endTime2 = `${(hour + 1).toString()}:00`;
 						schedules.push(`${day} ${startTime2}-${endTime2}`);
 					}
 				}
@@ -414,7 +414,7 @@ cli
 			}
 
 			// Redécoupe des créneaux en créneaux de 30 minutes
-			function sameCutSchedules(timeRange, dayOfWeek) {
+			/*function sameCutSchedules(timeRange, dayOfWeek) {
 				const startTime = timeRange.split("-")[0];  // Horaire de début
 				const startHour = startTime.split(":")[0]; // Heure de début
 				const startMinute = startTime.split(":")[1]; // Minutes de début
@@ -429,28 +429,68 @@ cli
 
 				for (let hour = startHour; hour < endHour; hour++) {
 					if (startMinute === "00" || hour != startHour) {
-						const startTime = `${hour.toString().padStart(2)}:00`;
-						const endTime = `${hour.toString().padStart(2)}:30`;
+						const startTime = `${hour.toString()}:00`;
+						const endTime = `${hour.toString()}:30`;
 						schedules.push(`${dayOfWeek} ${startTime}-${endTime}`);
 						console.log(schedules + "---------------------------schedules start min 00 ou =! start hour--------------------------");
 					}
 
-					const startTime = `${hour.toString().padStart(2)}:30`;
-					const endTime = `${(parseInt(hour) + 1).toString().padStart(2)}:00`;
+					const startTime = `${hour.toString()}:30`;
+					const endTime = `${(parseInt(hour) + 1).toString()}:00`;
 					schedules.push(`${dayOfWeek} ${startTime}-${endTime}`);
 					console.log(schedules + "---------------------------schedules en général--------------------------");
 
 
 					if ((hour == (parseInt(endHour) - 1)) && endMinute === "30") {
-						const startTime = `${endHour.toString().padStart(2)}:00`;
-						const endTime = `${(endHour).toString().padStart(2)}:30`;
+						const startTime = `${endHour.toString()}:00`;
+						const endTime = `${(endHour).toString()}:30`;
 						schedules.push(`${dayOfWeek} ${startTime}-${endTime}`);
 						console.log(schedules + "---------------------------schedules si finit par 30--------------------------");
 					}
 				}
 				console.log(schedules + "---------------------------schedules fin--------------------------");
 				return schedules;
+			}*/
+
+			function splitInto30MinuteSlots(day, timeRange) {
+				const [start, end] = timeRange.split('-');
+				const startHour = parseInt(start.split(':')[0]);
+				const startMinute = parseInt(start.split(':')[1]);
+				const endHour = parseInt(end.split(':')[0]);
+				const endMinute = parseInt(end.split(':')[1]);
+
+				const slots = [];
+				let currentHour = startHour;
+				let currentMinute = startMinute;
+
+				while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
+					const nextMinute = (currentMinute + 30) % 60;
+					const nextHour = currentHour + Math.floor((currentMinute + 30) / 60);
+
+					const slotStart = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+					const slotEnd = `${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`;
+					slots.push(`${day} ${slotStart} - ${slotEnd}`);
+
+					currentHour = nextHour;
+					currentMinute = nextMinute;
+				}
+
+				return slots;
 			}
+
+			// Find the occupied slots
+			const getOccupiedSlots = (parsedCourse, room) => {
+				const occupiedSlots = [];
+				parsedCourse.forEach(course => {
+					// Check if the room is occupied
+					course.timeSlots.forEach(slot => {
+						if (slot.salle === room) {
+							occupiedSlots.push(...splitInto30MinuteSlots(slot.horaire.split(' ')[0], slot.horaire.split(' ')[1]));
+						}
+					});
+				});
+				return occupiedSlots;
+			};
 
 
 			// Find all the differents rooms of the data
@@ -466,38 +506,48 @@ cli
 				return rooms.filter((value, index, self) => self.indexOf(value) === index); // Supprime les doublons
 			}
 
-			let occupiedSlotsAllRooms = {};
-			uniqueRooms(data).forEach(room => {
-				analyzer.ParsedCourse.forEach(course =>
-					course.timeSlots.forEach(slot => {
-						const dayOfWeek = dayMapping[slot.horaire.split(" ")[0]]; // Récupère le jour
-						const timeRange = slot.horaire.split(" ")[1]; // Récupère "08:00-10:00"
+			// Étape 1 : Récupérer les créneaux occupés pour chaque salle
+			const roomOccupancyData = [];
+			analyzer.ParsedCourse.forEach(course => {
+				course.timeSlots.forEach(slot => {
+					const room = slot.salle;
+					const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, room);
+					const totalSlots = 28 * 6 - 20; // Exemple : 28 créneaux de 30 minutes par semaine (8h à 22h)
+					let occupiedCount = occupiedSlots.length;
+					console.log(`OccupiedCount = ${occupiedCount}`)
+					if (!roomOccupancyData.some(roomData => roomData.room === room)) {
+						roomOccupancyData.push({
+							room,
+							occupiedCount,
+							totalSlots,
+							capacity: slot.capacite // Si disponible dans le fichier .cru
+						});
+					}
 
-						if (slot.salle === room) {
-							cutSlot = sameCutSchedules(timeRange, dayOfWeek);
-							cutSlot.forEach(slotCut => {
-								const dayOfWeek = dayMapping[slotCut.horaire.split(" ")[0]]; // Récupère le jour
-								const timeRange = slotCut.horaire.split(" ")[1]; // Récupère "08:00-10:00"
-								occupiedSlots.push(`${dayOfWeek} ${timeRange}`); //Ajoute le crénaux au tableau des crénaux occupés
-								console.log(`The room ${room} is occupied during the time slot: ${slotCut.horaire}`);
-							});
-						}
-					})
-				);
-				occupiedSlotsAllRooms.push(room, occupiedSlots); // tableau contenant pour chaque room différentes, tous ses slots (coupés par tranche de 30 minutes) où elle est occupée
-			})
+				});
+			});
 
-			let allSchedule = allSchedules();
-			let occupencyPercentageAllRooms = {};
+			// Itération sur les clés de l'objet 'rooms'
+			roomOccupancyData.forEach(data => {
+				// Récupérer le pourcentage d'occupation de la salle dans 'rooms'
+				const occupencyPercentage = ((data.occupiedCount/data.totalSlots)*100).toFixed(2);
 
-			// Calcul du pourcentage d'utilisation de chaque room
-			occupiedSlotsAllRooms.forEach(room =>{
-				let occupencyPercentage = (occupiedSlots.length * 100)/(allSchedule.length);
-				occupencyPercentageAllRooms.push(room, occupencyPercentage);
-			})
+				// Récupérer la capacité de la salle dans 'capacity'
+				const roomCapacity = data.capacity;
 
-
-
+				// Afficher le pourcentage d'occupation et la capacité de chaque salle
+				console.log(`Room: ${data.room}`);
+				console.log(`  Occupancy Percentage: ${occupencyPercentage}%`);
+				console.log(`  Capacity: ${roomCapacity}`);
+				if (occupencyPercentage <= 50){
+					console.log(`This room is under-utilized`);
+				}else if (occupencyPercentage < 80 && occupencyPercentage > 50){
+					console.log(`This room is normal utilized`);
+				}else{
+					console.log(`This room is over-utilized`);
+				}
+				console.log('----------------------------');
+			});
 
 			//} else {
 			//	logger.warn("The .cru file contains parsing errors.");
@@ -506,6 +556,34 @@ cli
 	})
 
 /*
+
+
+
+
+			// Si vous souhaitez récupérer l'objet trié à nouveau
+			// Itération sur les clés de l'objet 'rooms'
+			Object.keys(occupencyPercentageAllRooms).forEach(room => {
+				console.log(`---------------------------------------------${room}`);
+
+				// Récupérer le pourcentage d'occupation de la salle dans 'rooms'
+				const occupencyPercentage = occupencyPercentageAllRooms[room];
+				console.log(`---------------------------------------------${JSON.stringify(occupencyPercentageAllRooms[room])}`);
+
+				// Récupérer la capacité de la salle dans 'capacity'
+				const roomCapacity = capacity[room];
+				console.log(`---------------------------------------------${JSON.stringify(capacity[room])}`);
+
+
+				// Afficher le résultat
+				console.log(`Room: ${room}`);
+				console.log(`  Occupancy Percentage: ${occupencyPercentage}%`);
+				console.log(`  Capacity: ${roomCapacity}`);
+				console.log('----------------------------');
+			});
+
+
+
+
 	// search
 	.command('search', 'Free text search on POIs\' name')
 	.argument('<file>', 'The Vpf file to search')
