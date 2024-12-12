@@ -17,6 +17,55 @@ const splitInto30MinuteSlots = (day, timeRange) => {
     return slots;
 };
 
+const generateFilteredSlots = (startDay, startTime, endDay, endTime) => {
+    const days = ["L", "MA", "ME", "J", "V", "S"];
+    const allSlots = [];
+    let withinRange = false;
+
+    days.forEach(day => {
+        if (day === startDay) {
+            withinRange = true; // On commence à ajouter les slots
+        }
+
+        if (withinRange) {
+            // Détermine les heures d'ouverture pour le jour en cours
+            const openingHour = day === "S" ? 8 : 8;
+            const closingHour = day === "S" ? 12 : 22;
+
+            // Détermine les heures de début et de fin pour ce jour
+            const dayStartTime = day === startDay ? startTime : `${openingHour}:00`;
+            const dayEndTime = day === endDay ? endTime : `${closingHour}:00`;
+
+            const [startHour, startMinute] = dayStartTime.split(":").map(Number);
+            const [endHour, endMinute] = dayEndTime.split(":").map(Number);
+
+            // Génère les slots pour le jour
+            for (let hour = startHour; hour < endHour || (hour === endHour && startMinute < endMinute); hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const currentSlotStart = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+                    const nextSlotMinute = (minute + 30) % 60;
+                    const nextSlotHour = hour + Math.floor((minute + 30) / 60);
+                    const currentSlotEnd = `${nextSlotHour.toString().padStart(2, "0")}:${nextSlotMinute.toString().padStart(2, "0")}`;
+
+                    // Ajoute le slot uniquement s'il est dans la plage
+                    if (
+                        (hour > startHour || (hour === startHour && minute >= startMinute)) &&
+                        (hour < endHour || (hour === endHour && nextSlotMinute <= endMinute))
+                    ) {
+                        allSlots.push(`${day} ${currentSlotStart}-${currentSlotEnd}`);
+                    }
+                }
+            }
+        }
+
+        if (day === endDay) {
+            withinRange = false; // On arrête d'ajouter les slots
+        }
+    });
+
+    return allSlots;
+};
+
 // Create all the possible slots
 const generateAllSlots = () => {
     const days = ["L", "MA", "ME", "J", "V", "S"];
@@ -52,6 +101,7 @@ const getOccupiedSlots = (parsedCourse, room) => {
     });
     return occupiedSlots;
 };
+
 // Define the days of the week
 const dayOfTheWeek = {
     L: "Lundi",
@@ -61,6 +111,7 @@ const dayOfTheWeek = {
     V: "Vendredi",
     S: "Samedi",
 };
+
 
 module.exports = {
     dayOfTheWeek,

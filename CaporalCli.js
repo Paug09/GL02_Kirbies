@@ -19,7 +19,7 @@ const { dayOfTheWeek, getOccupiedSlots, generateAllSlots } = require("./slotMana
 
 // Create the CLI wich will be used to run the commands
 cli.version("cru-parser-cli")
-    .version("0.08")
+    .version("0.10")
     /**
      * Command to check if a file is a valid Cru file.
      *
@@ -111,11 +111,14 @@ cli.version("cru-parser-cli")
 
                     courseToSearch.timeSlots.forEach((ts) => {
                         console.log(`- ${ts.salle}`);
-                        console.log("capacité option", options.capacity);
                         // If the user wants to know the capacity of the room
                         if (options.capacity) {
                             let capacity = parseInt(ts.capacite);
-                            console.log(`  Capacity: ${capacity}`);
+                            let capacityMax = 0;
+                            if (capacity > capacityMax)
+                                capacityMax = capacity
+                            console.log(`  Capacity: ${capacityMax}`);
+                            
                         }
                     });
                 } else {
@@ -151,7 +154,7 @@ cli.version("cru-parser-cli")
             if (analyzer.errorCount === 0) {
                 let found = false;
                 let capacity = 0;
-
+                let capacityMax = 0;
                 // Search for the room in the file
                 analyzer.ParsedCourse.forEach((course) => {
                     course.timeSlots.forEach((ts) => {
@@ -159,11 +162,13 @@ cli.version("cru-parser-cli")
                         if (ts.salle === args.room) {
                             found = true;
                             capacity = parseInt(ts.capacite);
+                            if (capacity > capacityMax)
+                                capacityMax = capacity
                         }
                     });
                 });
                 if (found === true) {
-                    console.log(`Capacity of the room ${args.room} : ${capacity}`);
+                    console.log(`Capacity of the room ${args.room} : ${capacityMax}`);
                 } else {
                     console.error(`The room ${args.room} was not found in the given file.`);
                 }
@@ -174,19 +179,24 @@ cli.version("cru-parser-cli")
     })
 
     /**
-     * SPEC 3 : check free slots for a given room
+     * SPEC 3/7 : check free slots for a given room and show the occupied slots if wanted
      * @argument {string} file - The Cru file to analyze.
      * @argument {string} room - The room to check for free and occupied slots.
      * @option {boolean} -o, --occupied - Shows the occupied slots of the room.
+     * @option {boolean} -p, --percentage - Shows the percentage of occupancy of the room.
      * @example
-     * $ node caporalCli.js freeSlotsForRoom SujetA_data/CD/edt.cru S204 -o
+     * $ node caporalCli.js freeSlotsForRoom SujetA_data/CD/edt.cru S204 -o -p
      */
     .command("freeSlotsForRoom", "Check when a certain room is free during the week")
     .argument("<file>", "The Cru file to analyze")
     .argument("<room>", "The room to check for free and occupied slots")
-    .option("-o, --occupied", "Shows the occupied slots of the room", { validator: cli.BOOLEAN, default: false })
-    .action(({ args, options, logger }) => {
-        fs.readFile(args.file, "utf8", function (err, data) {
+    .option("-o, --occupied", "Shows the occupied slots of the room)", { validator: cli.BOOLEAN, default: false })
+    .option("-p, --percentage", "Shows the percentage of occupancy of the room)", {
+        validator: cli.BOOLEAN,
+        default: false,
+    })
+    .action(async ({ args, options, logger }) => {
+        fs.readFile(args.file, "utf8", async function (err, data) {
             if (err) {
                 return logger.warn(err);
             }
@@ -197,22 +207,37 @@ cli.version("cru-parser-cli")
             // Get all the slots and the occupied slots
             const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, args.room);
             const allSlots = generateAllSlots();
-
             // Calculate the free slots
             const freeSlots = allSlots.filter((slot) => !occupiedSlots.includes(slot));
 
             // Display the results
             logger.info(`Slots for room ${args.room}:`);
-            if (occupiedSlots.length > 0 && options.occupied) {
-                logger.info("Occupied time slots:");
-                occupiedSlots.forEach((slot) => console.log(`- ${slot}`));
-            }
-
+            
             if (freeSlots.length > 0) {
                 logger.info("Free time slots:");
                 freeSlots.forEach((slot) => console.log(`- ${slot}`));
             } else {
                 logger.info("No free time slots found.");
+            }
+
+            if (occupiedSlots.length > 0 && options.occupied) {
+                logger.info("Occupied time slots:");
+                occupiedSlots.forEach((slot) => console.log(`- ${slot}`));
+            }
+            // Display percentage of occupancy of the room if wanted
+            if (options.percentage) {
+                // Check if the user has the permission to run this command
+                const username = await promptUserForName();
+                const hasPermission = checkPermission(username, users, roles.admin);
+
+                if (!hasPermission) {
+                    logger.error("Access denied. This command is restricted to admins.");
+                    return;
+                }
+
+                logger.info("Access granted. Here are the parsed courses:");
+                const percentageOccupancy = (occupiedSlots.length / allSlots.length) * 100;
+                logger.info(`Occupancy rate: ${percentageOccupancy.toFixed(2)}%`);
             }
         });
     })
@@ -456,19 +481,31 @@ cli.version("cru-parser-cli")
         });
     })
 
-
     /**
      * SPEC 8/9 : Identify which rooms are under-utilized or over-utilized and/or generate a pie chart of room occupancy based on the .cru file
      * @argument {string} file - The Cru file to analyze.
      * @option {boolean} -p, --pieChart - The capacity to generate a synthetic visualization of room occupancy rates and rank by seating capacity.
      * @example
-     * $ node caporalCli.js roomOccupancy SujetA_data/CD/edt.cru
+     * $ node caporalCli.js utilizedRoom SujetA_data/CD/edt.cru -p
      */
-    .command('utilizedRoom', 'Show the utilized purcentage')
-    .argument('<file>', 'The Cru file to search')
-    .option('-p, --pieChart', 'Shows a graphic representation of the occupancy of the room', { validator: cli.BOOLEAN, default: false }) // Option pour afficher la représentation graphique
-    .action(({ args, options, logger }) => {
-        fs.readFile(args.file, 'utf8', function (err, data) {
+    .command("utilizedRoom", "Show the utilized purcentage")
+    .argument("<file>", "The Cru file to search")
+    .option("-p, --pieChart", "Shows a graphic representation of the occupancy of the room", {
+        validator: cli.BOOLEAN,
+        default: false,
+    }) // Option pour afficher la représentation graphique
+    .action(async ({ args, options, logger }) => {
+        // Check if the user has the permission to run this command
+        const username = await promptUserForName();
+        const hasPermission = checkPermission(username, users, roles.admin);
+
+        if (!hasPermission) {
+            logger.error("Access denied. This command is restricted to admins.");
+            return;
+        }
+
+        logger.info("Access granted. Here are the parsed courses:");
+        fs.readFile(args.file, "utf8", function (err, data) {
             if (err) {
                 return logger.warn(err);
             }
@@ -479,26 +516,25 @@ cli.version("cru-parser-cli")
             if (analyzer.errorCount === 0) {
                 // First step : Retrieve occupied slots for each room
                 const roomOccupancyData = [];
-                analyzer.ParsedCourse.forEach(course => {
-                    course.timeSlots.forEach(slot => {
+                analyzer.ParsedCourse.forEach((course) => {
+                    course.timeSlots.forEach((slot) => {
                         const room = slot.salle;
                         const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, room);
                         const totalSlots = 28 * 6 - 20; // Example: 28 30-minute slots per week (8am to 10pm)
                         let occupiedCount = occupiedSlots.length;
-                        if (!roomOccupancyData.some(roomData => roomData.room === room)) {
+                        if (!roomOccupancyData.some((roomData) => roomData.room === room)) {
                             roomOccupancyData.push({
                                 room,
                                 occupiedCount,
                                 totalSlots,
-                                capacity: slot.capacite // If available in .cru file
+                                capacity: slot.capacite, // If available in .cru file
                             });
                         }
-
                     });
                 });
 
                 // Iteration on 'rooms' object keys
-                roomOccupancyData.forEach(data => {
+                roomOccupancyData.forEach((data) => {
                     // Retrieve room occupancy percentage in 'rooms
                     const occupencyPercentage = ((data.occupiedCount / data.totalSlots) * 100).toFixed(2);
 
@@ -510,26 +546,24 @@ cli.version("cru-parser-cli")
                     console.log(`  Occupancy Percentage: ${occupencyPercentage}%`);
                     console.log(`  Capacity: ${roomCapacity}`);
                     if (occupencyPercentage <= 50) {
-                        console.log(`This room is under-utilized`);
+                        logger.warn(`This room is under-utilized`);
                     } else if (occupencyPercentage < 80 && occupencyPercentage > 50) {
-                        console.log(`This room is normal utilized`);
+                        logger.info(`This room is normal utilized`);
                     } else {
-                        console.log(`This room is over-utilized`);
+                        logger.warn(`This room is over-utilized`);
                     }
 
-                    if(options.pieChart){
+                    if (options.pieChart) {
                         const chartUrl = generateChart(data.room, data.occupiedCount, data.totalSlots);
                         logger.info(`Chart URL: ${chartUrl}`);
                     }
-                    
-                    console.log('----------------------------');
-                });
 
+                    console.log("----------------------------");
+                });
             } else {
                 logger.warn("The .cru file contains parsing errors.");
             }
         });
-    })
-
+    });
 
 cli.run(process.argv.slice(2));

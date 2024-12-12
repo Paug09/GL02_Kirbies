@@ -78,6 +78,7 @@ file        :   The Cru file where you want to search (e.g. "edt.cru")
 room		:   The room for which you want to know the capacity (e.g. "A105")
 
 -o or --occupied   :   Shows the occupied slots of the room { default : false }
+-p or --percentage :   Shows the percentage of occupancy of the room boolean
 
 
 <command> : findAvailableRooms
@@ -112,6 +113,10 @@ file        :   The Cru file where you want to search (e.g. "edt.cru")
 
 
 ### Version : 
+
+# 0.10
+- Ajout de la SPEC 7 via la commande de la SPEC 3 qui permet d'afficher le taux d'occupation d'une salle
+- Update des authentifications sur les SPEC concernées
 
 # 0.09
 - Ajout des SPECs 8 et 9 qui permmetent des connaître le pourcentage d'occupation des salles dans la semaine
