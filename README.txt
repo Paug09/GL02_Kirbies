@@ -71,14 +71,21 @@ course		:   The course for which you want to know the associated rooms (e.g. "CM
 file		:   The Cru file where you want to search (e.g. "edt.cru")
 room		:   The room for which you want to know the capacity (e.g. "A105")
 
+<command> : freeSlotsForRoom
+
+
+file        :   The Cru file where you want to search (e.g. "edt.cru")
+room		:   The room for which you want to know the capacity (e.g. "A105")
+
+-o or --occupied   :   Shows the occupied slots of the room { default : false }
+
 
 <command> : findAvailableRooms
 
 
 file		:   The Cru file where you want to search (e.g. "edt.cru")
-day		:   The day when for which you want the available room. Please only give the first lette of the day, in French ("L", "MA", "ME", "J", "V", or "S") 
+day		    :   The day when for which you want the available room. Please only give the first lette of the day, in French ("L", "MA", "ME", "J", "V", or "S") 
 timeSlot	:   The time slot for which you want the available rooms. Please write it with the format HH:MM-HH:MM (e.g. "10:00-12:00)
-
 
 
 <command> : generateCalendar
@@ -96,7 +103,18 @@ endDate         :   The end date in YYYY-MM-DD format
 file		:   The Cru file where you want to search (e.g. "edt.cru")
 
 
+<command> : utilizedRoom
+
+
+file        :   The Cru file where you want to search (e.g. "edt.cru")
+
+-p or --pieChart   :   Shows a graphic representation of the occupancy of the room { default : false }
+
+
 ### Version : 
+
+# 0.09
+- Ajout des SPECs 8 et 9 qui permmetent des connaître le pourcentage d'occupation des salles dans la semaine
 
 # 0.08
 - Ajout de la SPEC 3 qui vérifie quand est ce qu'une salle est libre

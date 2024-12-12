@@ -184,7 +184,7 @@ cli.version("cru-parser-cli")
     .command("freeSlotsForRoom", "Check when a certain room is free during the week")
     .argument("<file>", "The Cru file to analyze")
     .argument("<room>", "The room to check for free and occupied slots")
-    .option("-o, --occupied", "Shows the occupied slots of the room)", { validator: cli.BOOLEAN, default: false })
+    .option("-o, --occupied", "Shows the occupied slots of the room", { validator: cli.BOOLEAN, default: false })
     .action(({ args, options, logger }) => {
         fs.readFile(args.file, "utf8", function (err, data) {
             if (err) {
@@ -456,16 +456,18 @@ cli.version("cru-parser-cli")
         });
     })
 
-    
+
     /**
-     * SPEC 8/9 : Generate a pie chart of room occupancy based on the .cru file
+     * SPEC 8/9 : Identify which rooms are under-utilized or over-utilized and/or generate a pie chart of room occupancy based on the .cru file
      * @argument {string} file - The Cru file to analyze.
+     * @option {boolean} -p, --pieChart - The capacity to generate a synthetic visualization of room occupancy rates and rank by seating capacity.
      * @example
      * $ node caporalCli.js roomOccupancy SujetA_data/CD/edt.cru
      */
-    .command('roomOccupancy', 'Generates a pie chart of room occupancy based on the .cru file')
-    .argument('<file>', 'The Cru file to analyze')
-    .action(({ args, logger }) => {
+    .command('utilizedRoom', 'Show the utilized purcentage')
+    .argument('<file>', 'The Cru file to search')
+    .option('-p, --pieChart', 'Shows a graphic representation of the occupancy of the room', { validator: cli.BOOLEAN, default: false }) // Option pour afficher la représentation graphique
+    .action(({ args, options, logger }) => {
         fs.readFile(args.file, 'utf8', function (err, data) {
             if (err) {
                 return logger.warn(err);
@@ -474,44 +476,60 @@ cli.version("cru-parser-cli")
             const analyzer = new CruParser();
             analyzer.parse(data);
 
-            // Étape 1 : Récupérer les créneaux occupés pour chaque salle
-            const roomOccupancyData = [];
-            analyzer.ParsedCourse.forEach(course => {
-                course.timeSlots.forEach(slot => {
-                    const room = slot.salle;
-                    const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, room);
-                    const totalSlots = 28 * 6 - 20; // Exemple : 28 créneaux de 30 minutes par semaine (8h à 22h)
-                    let occupiedCount = occupiedSlots.length;
-                    if (!roomOccupancyData.some(roomData => roomData.room === room)) {
-                        roomOccupancyData.push({
-                            room,
-                            occupiedCount,
-                            totalSlots,
-                            capacity: slot.capacite // Si disponible dans le fichier .cru
-                        });
+            if (analyzer.errorCount === 0) {
+                // First step : Retrieve occupied slots for each room
+                const roomOccupancyData = [];
+                analyzer.ParsedCourse.forEach(course => {
+                    course.timeSlots.forEach(slot => {
+                        const room = slot.salle;
+                        const occupiedSlots = getOccupiedSlots(analyzer.ParsedCourse, room);
+                        const totalSlots = 28 * 6 - 20; // Example: 28 30-minute slots per week (8am to 10pm)
+                        let occupiedCount = occupiedSlots.length;
+                        if (!roomOccupancyData.some(roomData => roomData.room === room)) {
+                            roomOccupancyData.push({
+                                room,
+                                occupiedCount,
+                                totalSlots,
+                                capacity: slot.capacite // If available in .cru file
+                            });
+                        }
+
+                    });
+                });
+
+                // Iteration on 'rooms' object keys
+                roomOccupancyData.forEach(data => {
+                    // Retrieve room occupancy percentage in 'rooms
+                    const occupencyPercentage = ((data.occupiedCount / data.totalSlots) * 100).toFixed(2);
+
+                    // Retrieve room capacity in 'capacity'.
+                    const roomCapacity = data.capacity;
+
+                    // Display the occupancy percentage and capacity of each room
+                    console.log(`Room: ${data.room}`);
+                    console.log(`  Occupancy Percentage: ${occupencyPercentage}%`);
+                    console.log(`  Capacity: ${roomCapacity}`);
+                    if (occupencyPercentage <= 50) {
+                        console.log(`This room is under-utilized`);
+                    } else if (occupencyPercentage < 80 && occupencyPercentage > 50) {
+                        console.log(`This room is normal utilized`);
+                    } else {
+                        console.log(`This room is over-utilized`);
                     }
 
+                    if(options.pieChart){
+                        const chartUrl = generateChart(data.room, data.occupiedCount, data.totalSlots);
+                        logger.info(`Chart URL: ${chartUrl}`);
+                    }
+                    
+                    console.log('----------------------------');
                 });
-            });
 
-
-            // Étape 2 : Classer les salles par capacité puis par taux d'occupation
-            roomOccupancyData.sort((a, b) => {
-                if (a.capacity === b.capacity) {
-                    return (b.occupiedCount / b.totalSlots) - (a.occupiedCount / a.totalSlots);
-                }
-                return b.capacity - a.capacity; // Trier d'abord par capacité
-            });
-
-            // Étape 3 : Générer le graphique pour chaque salle
-            roomOccupancyData.forEach(roomData => {
-                const chartUrl = generateChart(roomData.room, roomData.occupiedCount, roomData.totalSlots);
-                logger.info(`Room: ${roomData.room}`);
-                logger.info(`Capacity: ${roomData.capacity}`);
-                logger.info(`Occupancy: ${((roomData.occupiedCount / roomData.totalSlots) * 100).toFixed(2)}%`);
-                logger.info(`Chart URL: ${chartUrl}`);
-            });
+            } else {
+                logger.warn("The .cru file contains parsing errors.");
+            }
         });
-    });
+    })
+
 
 cli.run(process.argv.slice(2));
